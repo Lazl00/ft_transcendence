@@ -1,0 +1,7 @@
+FROM    debian:Bookworn
+
+COPY 
+
+RUN chmod +x entrypoint.sh
+
+ENTRYPOINT [entrypoint.sh]

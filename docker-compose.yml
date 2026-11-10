@@ -15,18 +15,17 @@ services:
     restart: unless-stopped
     container_name: database-sql
     environment:
-      POSTGRES_USER: demo_user
-      POSTGRES_PASSWORD: demo_password
-      POSTGRES_DB: demo_db
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     networks:
       - internal-network
     volumes:
       - postgresql_data:/var/lib/postgresql/data
+      - ./srcs/back-end/postgresql:/docker-entrypoint-initdb.d:ro
 
 volumes:
   postgresql_data:
-
-
 
 networks:
   internal-network:

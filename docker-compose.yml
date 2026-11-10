@@ -21,7 +21,7 @@ services:
     networks:
       - internal-network
     volumes:
-      - postgresql_data:/var/lib/postgressql/data
+      - postgresql_data:/var/lib/postgresql/data
 
 volumes:
   postgresql_data:

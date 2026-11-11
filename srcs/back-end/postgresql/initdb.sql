@@ -4,8 +4,8 @@ CREATE TABLE players (
     username VARCHAR(32) UNIQUE NOT NULL,
     level SMALLINT NOT NULL DEFAULT 1,
     xp INT NOT NULL DEFAULT 0,
-    money INT NOT NULL DEFAULT 0 CHECK (MONEY >= 0)
-    avatar_path VARCHAR(255) NOT NULL
+    money INT NOT NULL DEFAULT 0 CHECK (MONEY >= 0),
+    avatar_path VARCHAR(255) NOT NULL DEFAULT '/avatars/defaults/default1.png'
 );
 
 -- Create the friendlist TABLE
@@ -51,4 +51,4 @@ CREATE TABLE players_items (
 );
 
 -- PK is sorted by player_id; this index makes "who owns item Y" fast
-CREATE INDEX player_items_item_id ON player_items (item_id);
+CREATE INDEX player_items_item_id ON players_items (item_id);

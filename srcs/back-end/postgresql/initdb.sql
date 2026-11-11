@@ -5,6 +5,7 @@ CREATE TABLE players (
     level SMALLINT NOT NULL DEFAULT 1,
     xp INT NOT NULL DEFAULT 0,
     money INT NOT NULL DEFAULT 0 CHECK (MONEY >= 0)
+    avatar_path VARCHAR(255) NOT NULL
 );
 
 -- Create the friendlist TABLE

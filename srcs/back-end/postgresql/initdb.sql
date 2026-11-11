@@ -52,3 +52,18 @@ CREATE TABLE players_items (
 
 -- PK is sorted by player_id; this index makes "who owns item Y" fast
 CREATE INDEX player_items_item_id ON players_items (item_id);
+
+-- Create the achievements table
+CREATE TABLE achievements (
+    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name VARCHAR(64) NOT NULL UNIQUE,
+    unlock_condition VARCHAR(255) NOT NULL
+);
+
+-- Create the players_achievements table
+CREATE TABLE players_achievements (
+    player_id INT NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    achievement_id INT NOT NULL REFERENCES achievements(id) ON DELETE CASCADE,
+    acquired_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (player_id, achievement_id)
+);

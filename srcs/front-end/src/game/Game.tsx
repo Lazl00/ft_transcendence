@@ -16,7 +16,14 @@ export default function Game() {
             width: 800,
             height: 500,
             parent: gameRef.current,
-            scene: [GameScene]
+            scene: [GameScene],
+            physics: {
+            default: 'arcade',
+            arcade: {
+                gravity: { x: 0, y: 1500 },
+                debug: true
+            }
+}
         });
 
         return () => {

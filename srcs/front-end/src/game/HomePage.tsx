@@ -2,16 +2,21 @@ import { useState } from 'react';
 import './HomePage.css';
 import ColorGrid, { placeholderMap } from './ColorGrid';
 
+// The HomePage component manages the navigation between different screens of the game.
 function HomePage() {
+    // Defining the types for the different screens in the game
     type Screen = 'menu' | 'new-game' | 'join-game' | 'stats' | 'shop';
 
+    // State to keep track of the current screen
     const [screen, setScreen] = useState<Screen>('menu');
 
+    // Handlers to switch between different screens
     const handleNewGame = () => setScreen('new-game');
     const handleJoinGame = () => setScreen('join-game');
     const handleViewStats = () => setScreen('stats');
     const handleShop = () => setScreen('shop');
 
+    // Function to render the appropriate screen based on the current state
     const renderScreen = () => {
         switch (screen) {
             case 'menu':
@@ -54,6 +59,7 @@ function HomePage() {
         }
     };
 
+    // Rendering the HomePage component with the current screen and title
     return (
         <div className="home">
             {screen === 'menu' && <h1 className="home-title">Transcendence</h1>}

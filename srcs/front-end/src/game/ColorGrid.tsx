@@ -1,8 +1,10 @@
 import './ColorGrid.css';
 
+// Defining the types for the tile codes and the game map
 export type TileCode = 'W' | 'E' | 'G' | 'P' | 'S' | 'F';
 export type GameMap = TileCode[][];
 
+// Placeholder map for testing purposes
 export const placeholderMap: GameMap = [
     ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W'],
     ['W', 'W', 'E', 'E', 'W', 'E', 'E', 'E', 'W', 'E', 'E', 'E', 'E', 'W', 'E', 'E', 'W', 'E', 'E', 'W'],
@@ -18,6 +20,7 @@ export const placeholderMap: GameMap = [
     ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W']
 ];
 
+// Mapping tile codes to their corresponding colors
 const tileColors: Record<TileCode, string> = {
     W: '#705740',
     E: '#929394',
@@ -27,9 +30,13 @@ const tileColors: Record<TileCode, string> = {
     F: '#17d05b',
 };
 
+// The ColorGrid component renders a grid of colored cells based on the provided game map.
 function ColorGrid({ map }: { map: GameMap }) {
+    // Calculate the number of columns in the grid based on the first row of the map
     const columnCount = map[0]?.length ?? 0;
+
     return (
+        // The grid container with dynamic column count and responsive width
         <div
             className="color-grid"
             style={{
@@ -37,6 +44,7 @@ function ColorGrid({ map }: { map: GameMap }) {
                 width: `min(100%, 75vw, 133.33vh)`,
             }}
         >
+            {/* Mapping over the game map to create individual colored cells for each tile */}
             {map.map((row, rowIndex) => row.map((tile, columnIndex) => (
                 <div
                     key={`${rowIndex}-${columnIndex}`}

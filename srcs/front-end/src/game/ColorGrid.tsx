@@ -1,111 +1,49 @@
-import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import './ColorGrid.css';
 
-function randomColor() {
-    return `hsl(${Math.floor(Math.random() * 360)}, 80%, 55%)`;
-}
+export type TileCode = 'W' | 'E' | 'G' | 'P' | 'S' | 'F';
+export type GameMap = TileCode[][];
 
-function ColorGrid() {
-    const viewportRef = useRef<HTMLDivElement>(null);
-    const scrollDirectionRef = useRef(0);
-    const animationFrameRef = useRef<number | null>(null);
-    const previousFrameTimeRef = useRef<number | null>(null);
-    const [colors] = useState(() =>
-        Array.from({ length: 800 }, randomColor)
-    );
+export const placeholderMap: GameMap = [
+    ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W'],
+    ['W', 'W', 'E', 'E', 'W', 'E', 'E', 'E', 'W', 'E', 'E', 'E', 'E', 'W', 'E', 'E', 'W', 'E', 'E', 'W'],
+    ['W', 'E', 'E', 'E', 'W', 'G', 'E', 'W', 'W', 'E', 'G', 'E', 'E', 'W', 'W', 'E', 'W', 'E', 'E', 'W'],
+    ['W', 'E', 'E', 'E', 'W', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'W', 'E', 'E', 'E', 'E', 'W'],
+    ['W', 'E', 'E', 'W', 'W', 'W', 'E', 'E', 'E', 'E', 'E', 'E', 'G', 'E', 'E', 'E', 'E', 'E', 'E', 'W'],
+    ['W', 'E', 'E', 'E', 'W', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'F', 'W'],
+    ['W', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'P', 'G', 'G', 'E', 'E', 'E', 'E', 'P', 'G', 'E', 'G', 'W'],
+    ['W', 'E', 'E', 'E', 'E', 'E', 'G', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'P', 'P', 'E', 'E', 'E', 'W'],
+    ['W', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'W', 'E', 'E', 'E', 'G', 'E', 'W'],
+    ['W', 'E', 'G', 'G', 'E', 'E', 'P', 'P', 'E', 'E', 'G', 'E', 'W', 'W', 'E', 'E', 'G', 'E', 'E', 'W'],
+    ['W', 'S', 'E', 'E', 'P', 'E', 'E', 'E', 'E', 'P', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'W'],
+    ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W']
+];
 
-    useEffect(() => {
-        viewportRef.current?.focus();
-        return () => {
-            if (animationFrameRef.current !== null) {
-                cancelAnimationFrame(animationFrameRef.current);
-            }
-        };
-    }, []);
+const tileColors: Record<TileCode, string> = {
+    W: '#705740',
+    E: '#929394',
+    G: '#272626',
+    P: '#f05454',
+    S: '#4e4ec8',
+    F: '#17d05b',
+};
 
-    const animateScroll = (timestamp: number) => {
-        const viewport = viewportRef.current;
-        if (!viewport || scrollDirectionRef.current === 0) {
-            animationFrameRef.current = null;
-            return;
-        }
-
-        const previousFrameTime = previousFrameTimeRef.current ?? timestamp;
-        const elapsed = Math.min(timestamp - previousFrameTime, 32);
-        previousFrameTimeRef.current = timestamp;
-
-        const maxScroll = viewport.scrollWidth - viewport.clientWidth;
-        viewport.scrollLeft = Math.max(
-            0,
-            Math.min(maxScroll, viewport.scrollLeft + scrollDirectionRef.current * 500 * elapsed / 1000)
-        );
-
-        if ((viewport.scrollLeft === 0 && scrollDirectionRef.current < 0) ||
-            (viewport.scrollLeft === maxScroll && scrollDirectionRef.current > 0)) {
-            animationFrameRef.current = null;
-            previousFrameTimeRef.current = null;
-            return;
-        }
-
-        animationFrameRef.current = requestAnimationFrame(animateScroll);
-    };
-
-    const stopScrolling = () => {
-        scrollDirectionRef.current = 0;
-        previousFrameTimeRef.current = null;
-        if (animationFrameRef.current !== null) {
-            cancelAnimationFrame(animationFrameRef.current);
-            animationFrameRef.current = null;
-        }
-    };
-
-    useEffect(() => {
-        const handleWindowKeyUp = (event: globalThis.KeyboardEvent) => {
-            if ((event.key === 'ArrowLeft' || event.key === 'ArrowRight') && scrollDirectionRef.current !== 0) {
-                stopScrolling();
-            }
-        };
-
-        window.addEventListener('keyup', handleWindowKeyUp);
-        return () => window.removeEventListener('keyup', handleWindowKeyUp);
-    }, [stopScrolling]);
-
-    const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
-            return;
-        }
-
-        event.preventDefault();
-        const direction = event.key === 'ArrowRight' ? 1 : -1;
-        if (scrollDirectionRef.current === direction) {
-            return;
-        }
-
-        scrollDirectionRef.current = direction;
-        previousFrameTimeRef.current = null;
-        if (animationFrameRef.current === null) {
-            animationFrameRef.current = requestAnimationFrame(animateScroll);
-        }
-    };
-
+function ColorGrid({ map }: { map: GameMap }) {
+    const columnCount = map[0]?.length ?? 0;
     return (
         <div
-            ref={viewportRef}
-            className="color-grid-viewport"
-            tabIndex={0}
-            aria-label="Color grid. Use the left and right arrow keys to scroll."
-            onKeyDown={handleKeyDown}
-            onBlur={stopScrolling}
+            className="color-grid"
+            style={{
+                gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
+                width: `min(100%, 75vw, 133.33vh)`,
+            }}
         >
-            <div className="color-grid">
-                {colors.map((color, index) => (
-                    <div
-                        key={index}
-                        className="color-cell"
-                        style={{ backgroundColor: color }}
-                    />
-                ))}
-            </div>
+            {map.map((row, rowIndex) => row.map((tile, columnIndex) => (
+                <div
+                    key={`${rowIndex}-${columnIndex}`}
+                    className="color-cell"
+                    style={{ backgroundColor: tileColors[tile] }}
+                />
+            )))}
         </div>
     );
 }

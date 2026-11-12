@@ -6,6 +6,7 @@
     padding-top: 4rem;        /* titre "en haut" */
     gap: 3rem;                /* espace entre le titre et les boutons */
     font-family: 'Press Start 2P', monospace;
+    width: 100%;
 }
 
 .home-title {

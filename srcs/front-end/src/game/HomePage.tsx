@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import './HomePage.css';
-import ColorGrid from './ColorGrid';
+import ColorGrid, { placeholderMap } from './ColorGrid';
 
 function HomePage() {
     type Screen = 'menu' | 'new-game' | 'join-game' | 'stats' | 'shop';
@@ -23,7 +23,7 @@ function HomePage() {
                         </nav>;
             case 'new-game':
                 return <>
-                    <ColorGrid />
+                    <ColorGrid map={placeholderMap} />
                     <button className="menu-button back-button" onClick={() => setScreen('menu')}>
                         Back
                     </button>

@@ -1,10 +1,22 @@
+.color-grid-viewport {
+    width: min(100vw);
+    overflow-x: hidden;
+    overflow-y: hidden;
+}
+
+.color-grid-viewport:focus-visible {
+    outline: 2px solid white;
+    outline-offset: 4px;
+}
+
 .color-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 0.5rem;
-    width: min(80vw, 24rem);
+    grid-template-columns: repeat(100, 3rem);
+    grid-auto-rows: 3rem;
+    gap: 0rem;
+    width: max-content;
 }
 
 .color-cell {
-    aspect-ratio: 1;   /* garde les cellules carrées */
+    aspect-ratio: 1;
 }

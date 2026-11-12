@@ -12,7 +12,7 @@ function HomePage() {
 
     return (
         <div className="home">
-            <h1 className="home-title">Transcendence</h1>
+            {!showGrid && <h1 className="home-title">Transcendence</h1>}
 
             {showGrid ? (
                 <>

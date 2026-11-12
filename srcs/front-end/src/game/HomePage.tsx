@@ -3,32 +3,62 @@ import './HomePage.css';
 import ColorGrid from './ColorGrid';
 
 function HomePage() {
-    const [showGrid, setShowGrid] = useState(false);
+    type Screen = 'menu' | 'new-game' | 'join-game' | 'stats' | 'shop';
 
-    const handleNewGame = () => setShowGrid(true);
-    const handleJoinGame = () => console.log('Join game');
-    const handleViewStats = () => console.log('View stats');
-    const handleShop = () => console.log('Shop');
+    const [screen, setScreen] = useState<Screen>('menu');
+
+    const handleNewGame = () => setScreen('new-game');
+    const handleJoinGame = () => setScreen('join-game');
+    const handleViewStats = () => setScreen('stats');
+    const handleShop = () => setScreen('shop');
+
+    const renderScreen = () => {
+        switch (screen) {
+            case 'menu':
+                return <nav className="home-menu">
+                            <button className="menu-button" onClick={handleNewGame}>New game</button>
+                            <button className="menu-button" onClick={handleJoinGame}>Join game</button>
+                            <button className="menu-button" onClick={handleViewStats}>View stats</button>
+                            <button className="menu-button" onClick={handleShop}>Shop</button>
+                        </nav>;
+            case 'new-game':
+                return <>
+                    <ColorGrid />
+                    <button className="menu-button back-button" onClick={() => setScreen('menu')}>
+                        Back
+                    </button>
+                </>;
+            case 'join-game':
+                return <>
+                    <h2>Join Game Screen</h2>
+                    <button className="menu-button back-button" onClick={() => setScreen('menu')}>
+                        Back
+                    </button>
+                </>;
+            case 'stats':
+                return <>
+                    <h2>Stats Screen</h2>
+                    <button className="menu-button back-button" onClick={() => setScreen('menu')}>
+                        Back
+                    </button>
+                </>;
+            case 'shop':
+                return <>
+                    <h2>Shop Screen</h2>
+                    <button className="menu-button back-button" onClick={() => setScreen('menu')}>
+                            Back
+                    </button>
+                </>;
+            default:
+                return null;
+        }
+    };
 
     return (
         <div className="home">
-            {!showGrid && <h1 className="home-title">Transcendence</h1>}
+            {screen === 'menu' && <h1 className="home-title">Transcendence</h1>}
 
-            {showGrid ? (
-                <>
-                    <ColorGrid />
-                    <button className="menu-button back-button" onClick={() => setShowGrid(false)}>
-                        Back
-                    </button>
-                </>
-            ) : (
-                <nav className="home-menu">
-                    <button className="menu-button" onClick={handleNewGame}>New game</button>
-                    <button className="menu-button" onClick={handleJoinGame}>Join game</button>
-                    <button className="menu-button" onClick={handleViewStats}>View stats</button>
-                    <button className="menu-button" onClick={handleShop}>Shop</button>
-                </nav>
-            )}
+            {renderScreen()}
         </div>
     );
 }

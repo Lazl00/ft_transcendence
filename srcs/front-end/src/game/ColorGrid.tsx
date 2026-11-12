@@ -10,8 +10,6 @@ function ColorGrid() {
     const scrollDirectionRef = useRef(0);
     const animationFrameRef = useRef<number | null>(null);
     const previousFrameTimeRef = useRef<number | null>(null);
-    // La fonction passée à useState n'est exécutée qu'une fois :
-    // les couleurs ne changent pas à chaque re-render
     const [colors] = useState(() =>
         Array.from({ length: 800 }, randomColor)
     );

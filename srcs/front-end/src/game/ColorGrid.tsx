@@ -48,7 +48,7 @@ function ColorGrid({ map }: { map: GameMap }) {
             }}
         >
             {/* Mapping over the game map to create individual colored cells for each tile */}
-            {map.map((row, rowIndex) => row.map((tile, columnIndex) => (
+            {[...map].reverse().map((row, rowIndex) => row.map((tile, columnIndex) => (
                 <div
                     key={`${rowIndex}-${columnIndex}`}
                     className="color-cell"

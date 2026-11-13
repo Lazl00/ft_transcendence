@@ -1,5 +1,5 @@
 import {calc_dist_sqrt, calc_dist_axe} from "./distance.js"
-import {e, f} from "./struct.js"
+import type {e, f} from "./struct.js"
 
 
 export function spike(fixed: e, th: f, rand: () => number): number
@@ -14,9 +14,9 @@ export function spike(fixed: e, th: f, rand: () => number): number
 		{
 			if (r <= 6)
 			{
-				th.map[th.safe_path_1[i]][i] = "P";
-				if (th.map[th.safe_path_1[i] - 1][i] !== "W")
-					th.map[th.safe_path_1[i] - 1][i] = "G";
+				th.map[th.safe_path_1[i]][i] = 'P';
+				if (th.map[th.safe_path_1[i] - 1][i] !== 'W')
+					th.map[th.safe_path_1[i] - 1][i] = 'G';
 				cluster++;
 				s_cluster == 0;
 			}
@@ -27,17 +27,17 @@ export function spike(fixed: e, th: f, rand: () => number): number
 		{
 			if (cluster < th.cluster_min && calc_dist_sqrt(i - cluster, th.safe_path_1[i - cluster], i + 1, th.safe_path_1[i + 1]) < fixed.jsize)
 			{
-				th.map[th.safe_path_1[i]][i] = "P";
-				if (th.map[th.safe_path_1[i] - 1][i] !== "W")
-					th.map[th.safe_path_1[i] - 1][i] = "G";
+				th.map[th.safe_path_1[i]][i] = 'P';
+				if (th.map[th.safe_path_1[i] - 1][i] !== 'W')
+					th.map[th.safe_path_1[i] - 1][i] = 'G';
 				cluster++;
 				s_cluster == 0;
 			}
 			else if(r > 4 && calc_dist_sqrt(i - cluster, th.safe_path_1[i - cluster], i + 1, th.safe_path_1[i + 1]) < fixed.jsize)
 			{
-				th.map[th.safe_path_1[i]][i] = "P";
-				if (th.map[th.safe_path_1[i] - 1][i] !== "W")
-					th.map[th.safe_path_1[i] - 1][i] = "G";
+				th.map[th.safe_path_1[i]][i] = 'P';
+				if (th.map[th.safe_path_1[i] - 1][i] !== 'W')
+					th.map[th.safe_path_1[i] - 1][i] = 'G';
 				cluster++;
 				s_cluster = 0;
 			}
@@ -55,9 +55,9 @@ export function spike(fixed: e, th: f, rand: () => number): number
 	}
 	for (let i = 1; i < fixed.len - 1; i++)
 	{
-		if (th.map[1][i] === "E" && th.map[2][i] === "E")
+		if (th.map[1][i] === 'E' && th.map[2][i] === 'E')
 		{
-			th.map[1][i] = "P";
+			th.map[1][i] = 'P';
 		}
 	}
 	return 1;

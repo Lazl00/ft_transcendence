@@ -1,24 +1,27 @@
 import './ColorGrid.css';
+import { map_gen } from "./map_gen/map_gen.js";
 
 // Defining the types for the tile codes and the game map
 export type TileCode = 'W' | 'E' | 'G' | 'P' | 'S' | 'F';
 export type GameMap = TileCode[][];
 
+
+export const placeholderMap: GameMap = map_gen();
 // Placeholder map for testing purposes
-export const placeholderMap: GameMap = [
-    ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W'],
-    ['W', 'W', 'E', 'E', 'W', 'E', 'E', 'E', 'W', 'E', 'E', 'E', 'E', 'W', 'E', 'E', 'W', 'E', 'E', 'W'],
-    ['W', 'E', 'E', 'E', 'W', 'G', 'E', 'W', 'W', 'E', 'G', 'E', 'E', 'W', 'W', 'E', 'W', 'E', 'E', 'W'],
-    ['W', 'E', 'E', 'E', 'W', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'W', 'E', 'E', 'E', 'E', 'W'],
-    ['W', 'E', 'E', 'W', 'W', 'W', 'E', 'E', 'E', 'E', 'E', 'E', 'G', 'E', 'E', 'E', 'E', 'E', 'E', 'W'],
-    ['W', 'E', 'E', 'E', 'W', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'F', 'W'],
-    ['W', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'P', 'G', 'G', 'E', 'E', 'E', 'E', 'P', 'G', 'E', 'G', 'W'],
-    ['W', 'E', 'E', 'E', 'E', 'E', 'G', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'P', 'P', 'E', 'E', 'E', 'W'],
-    ['W', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'W', 'E', 'E', 'E', 'G', 'E', 'W'],
-    ['W', 'E', 'G', 'G', 'E', 'E', 'P', 'P', 'E', 'E', 'G', 'E', 'W', 'W', 'E', 'E', 'G', 'E', 'E', 'W'],
-    ['W', 'S', 'E', 'E', 'P', 'E', 'E', 'E', 'E', 'P', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'W'],
-    ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W']
-];
+// export const placeholderMap: GameMap = [
+//     ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W'],
+//     ['W', 'W', 'E', 'E', 'W', 'E', 'E', 'E', 'W', 'E', 'E', 'E', 'E', 'W', 'E', 'E', 'W', 'E', 'E', 'W'],
+//     ['W', 'E', 'E', 'E', 'W', 'G', 'E', 'W', 'W', 'E', 'G', 'E', 'E', 'W', 'W', 'E', 'W', 'E', 'E', 'W'],
+//     ['W', 'E', 'E', 'E', 'W', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'W', 'E', 'E', 'E', 'E', 'W'],
+//     ['W', 'E', 'E', 'W', 'W', 'W', 'E', 'E', 'E', 'E', 'E', 'E', 'G', 'E', 'E', 'E', 'E', 'E', 'E', 'W'],
+//     ['W', 'E', 'E', 'E', 'W', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'F', 'W'],
+//     ['W', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'P', 'G', 'G', 'E', 'E', 'E', 'E', 'P', 'G', 'E', 'G', 'W'],
+//     ['W', 'E', 'E', 'E', 'E', 'E', 'G', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'P', 'P', 'E', 'E', 'E', 'W'],
+//     ['W', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'W', 'E', 'E', 'E', 'G', 'E', 'W'],
+//     ['W', 'E', 'G', 'G', 'E', 'E', 'P', 'P', 'E', 'E', 'G', 'E', 'W', 'W', 'E', 'E', 'G', 'E', 'E', 'W'],
+//     ['W', 'S', 'E', 'E', 'P', 'E', 'E', 'E', 'E', 'P', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'W'],
+//     ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W']
+// ];
 
 // Mapping tile codes to their corresponding colors
 const tileColors: Record<TileCode, string> = {

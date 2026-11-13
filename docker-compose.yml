@@ -24,6 +24,13 @@ services:
       - postgresql_data:/var/lib/postgresql/data
       - ./srcs/back-end/postgresql:/docker-entrypoint-initdb.d:ro
 
+  back-end:
+    build: ./srcs/back-end
+    restart: unless-stopped
+    container_name: back-end
+    networks:
+      - internal-network
+
 volumes:
   postgresql_data:
 

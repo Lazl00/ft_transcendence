@@ -25,7 +25,7 @@ export default function ControlsMenu({
                     onClick={() => onSelectPreset('azerty')}
                 >
                     <strong>AZERTY</strong>
-                    <span>Q Z S D</span>
+                    <span>Z Q S D</span>
                 </button>
 
                 <button

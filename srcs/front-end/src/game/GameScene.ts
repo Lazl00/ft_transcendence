@@ -2,6 +2,12 @@
 import Phaser from 'phaser';
 import type { GameControls } from './Controls';
 
+type SafePosition = {
+    x: number;
+    y: number;
+    time: number;
+};
+
 export default class GameScene extends Phaser.Scene {
     private coyoteTime = 100;
     private jumpBufferTime = 120;
@@ -23,13 +29,18 @@ export default class GameScene extends Phaser.Scene {
     private has_double_jump = true;
     private has_air_dash = true;
     private isDashing = false;
+    private isDead = false;
+    private wasOnFloor = false;
 
     private facingDirection = 1;
     private dashDirection = 1;
 
     private player!: Phaser.GameObjects.Rectangle;
+
     private platforms!: Phaser.Physics.Arcade.StaticGroup;
     private obstacles!: Phaser.Physics.Arcade.StaticGroup;
+    private hazards!: Phaser.Physics.Arcade.StaticGroup;
+    private jumpRefills!: Phaser.Physics.Arcade.StaticGroup;
 
     private controls: GameControls;
 
@@ -40,6 +51,8 @@ export default class GameScene extends Phaser.Scene {
         down: Phaser.Input.Keyboard.Key[];
         dash: Phaser.Input.Keyboard.Key[];
     };
+
+    private safePositions: SafePosition[] = [];
 
     constructor(controls: GameControls) {
         super('GameScene');
@@ -91,16 +104,54 @@ export default class GameScene extends Phaser.Scene {
 
         // Obstacles
         this.obstacles = this.physics.add.staticGroup();
-
         this.generateObstacles();
+
+        // Deadly objects
+        this.hazards = this.physics.add.staticGroup();
+        this.generateHazards();
+
+        // Double jump refills
+        this.jumpRefills = this.physics.add.staticGroup();
+        this.generateJumpRefills();
 
         // Collisions
         this.physics.add.collider(this.player, this.platforms);
         this.physics.add.collider(this.player, this.obstacles);
 
+        // Deadly object overlap
+        this.physics.add.overlap(
+            this.player,
+            this.hazards,
+            this.killPlayer,
+            undefined,
+            this
+        );
+
+        // Double jump refill overlap
+        this.physics.add.overlap(
+            this.player,
+            this.jumpRefills,
+            (_player, refill) => {
+                this.has_double_jump = true;
+
+                if (refill instanceof Phaser.GameObjects.Arc) {
+                    refill.destroy();
+                }
+            },
+            undefined,
+            this
+        );
+
         // Camera
         this.cameras.main.setBounds(0, 0, 3000, 500);
         this.cameras.main.startFollow(this.player, true, 0.08, 0);
+
+        // Initial safe position
+        this.safePositions.push({
+            x: this.player.x,
+            y: this.player.y,
+            time: this.time.now - 1000
+        });
 
         // Controls
         const keyboard = this.input.keyboard!;
@@ -109,19 +160,15 @@ export default class GameScene extends Phaser.Scene {
             left: this.controls.left.map(
                 key => keyboard.addKey(key)
             ),
-
             right: this.controls.right.map(
                 key => keyboard.addKey(key)
             ),
-
             jump: this.controls.jump.map(
                 key => keyboard.addKey(key)
             ),
-
             down: this.controls.down.map(
                 key => keyboard.addKey(key)
             ),
-
             dash: this.controls.dash.map(
                 key => keyboard.addKey(key)
             )
@@ -150,6 +197,43 @@ export default class GameScene extends Phaser.Scene {
         }
     }
 
+    private generateHazards() {
+        const hazardPositions = [950, 1600, 2350];
+
+        hazardPositions.forEach(x => {
+            const hazard = this.add.rectangle(
+                x,
+                447,
+                55,
+                26,
+                0xff2222
+            );
+
+            this.physics.add.existing(hazard, true);
+            this.hazards.add(hazard);
+        });
+    }
+
+    private generateJumpRefills() {
+        const refillPositions = [
+            { x: 750, y: 420 },
+            { x: 1800, y: 420 },
+            { x: 2600, y: 420 }
+        ];
+
+        refillPositions.forEach(position => {
+            const refill = this.add.circle(
+                position.x,
+                position.y,
+                14,
+                0x33ccff
+            );
+
+            this.physics.add.existing(refill, true);
+            this.jumpRefills.add(refill);
+        });
+    }
+
     // Check if at least one key is held
     private isAnyKeyDown(
         keys: Phaser.Input.Keyboard.Key[]
@@ -172,18 +256,104 @@ export default class GameScene extends Phaser.Scene {
         return pressed;
     }
 
+    // Save a safe landing position
+    private saveSafePosition() {
+        this.safePositions.push({
+            x: this.player.x,
+            y: this.player.y,
+            time: this.time.now
+        });
+
+        // Keep only the latest 100 landing positions
+        if (this.safePositions.length > 100) {
+            this.safePositions.shift();
+        }
+    }
+
+    // Kill the player
+    private killPlayer() {
+        if (this.isDead) {
+            return;
+        }
+
+        this.isDead = true;
+
+        const targetTime = this.time.now - 1000;
+
+        let safePosition = this.safePositions[0];
+
+        for (const position of this.safePositions) {
+            if (position.time <= targetTime) {
+                safePosition = position;
+            }
+        }
+
+        this.respawnPlayer(safePosition);
+    }
+
+    // Respawn the player
+    private respawnPlayer(position: SafePosition) {
+        const body = this.player.body as Phaser.Physics.Arcade.Body;
+
+        // Restore position
+        this.player.setPosition(position.x, position.y);
+        body.updateFromGameObject();
+        body.reset(body.x, body.y);
+
+        // Restore physics
+        body.allowGravity = true;
+        body.setVelocity(0, 0);
+        body.setAcceleration(0, 0);
+
+        // Restore abilities
+        this.has_double_jump = true;
+        this.has_air_dash = true;
+
+        // Reset movement states
+        this.isDashing = false;
+        this.dashTimer = 0;
+        this.dashCooldownTimer = 0;
+
+        this.coyoteTimer = 0;
+        this.jumpBufferTimer = 0;
+
+        this.canFastFall = false;
+        this.jumpStartY = body.y;
+
+        this.wasOnFloor = false;
+
+        // Respawn all double jump refills
+        this.jumpRefills.clear(true, true);
+        this.generateJumpRefills();
+
+        this.isDead = false;
+    }
+
     update() {
+        if (this.isDead) {
+            return;
+        }
+
         const body = this.player.body as Phaser.Physics.Arcade.Body;
         const delta = this.game.loop.delta;
 
         // Ground detection + recharge
-        if (body.onFloor()) {
+        const onFloor = body.onFloor();
+
+        if (onFloor) {
             this.has_double_jump = true;
             this.has_air_dash = true;
             this.coyoteTimer = this.coyoteTime;
+
+            // Save only when landing, not every frame
+            if (!this.wasOnFloor) {
+                this.saveSafePosition();
+            }
         } else {
             this.coyoteTimer -= delta;
         }
+
+        this.wasOnFloor = onFloor;
 
         // Dash cooldown
         if (this.dashCooldownTimer > 0) {
@@ -215,12 +385,10 @@ export default class GameScene extends Phaser.Scene {
         const dashPressed = this.isAnyKeyJustDown(this.keys.dash);
 
         if (dashPressed && !this.isDashing) {
-            if (body.onFloor() && this.dashCooldownTimer <= 0) {
-                // Ground dash
+            if (onFloor && this.dashCooldownTimer <= 0) {
                 this.startDash(body);
                 this.dashCooldownTimer = this.dashCooldown;
-            } else if (!body.onFloor() && this.has_air_dash) {
-                // Air dash
+            } else if (!onFloor && this.has_air_dash) {
                 this.startDash(body);
                 this.has_air_dash = false;
             }
@@ -269,7 +437,7 @@ export default class GameScene extends Phaser.Scene {
         else if (
             !this.isDashing &&
             this.jumpBufferTimer > 0 &&
-            !body.onFloor() &&
+            !onFloor &&
             this.has_double_jump
         ) {
             this.jumpStartY = body.y;
@@ -309,14 +477,11 @@ export default class GameScene extends Phaser.Scene {
         this.isDashing = true;
         this.dashTimer = this.dashDuration;
 
-        // Last known direction
         this.dashDirection = this.facingDirection;
 
-        // Disable gravity
         body.allowGravity = false;
         body.setAccelerationY(0);
 
-        // Horizontal impulse
         body.setVelocity(
             this.dashDirection * this.dashSpeed,
             0

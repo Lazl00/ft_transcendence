@@ -1,0 +1,17 @@
+{
+    "name": "ft_transcendance-backend",
+    "version": "1.0.0",
+    "description": "le back end du project qui va permetrre de communiquer avec postgresql",
+    "author": {"name": "walid"},
+    "scripts": {
+        "start": "node index.js",
+        "dev": "nodemon index.js"
+    },
+    "dependencies": {
+        "fastify": "^5.0.0",
+        "pg":"^8.23.1"
+    },
+    "devDependencies": {
+        "nodemon":"^3.1.14"
+    }
+}

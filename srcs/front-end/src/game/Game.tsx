@@ -1,9 +1,15 @@
 
 import { useEffect, useRef } from 'react';
 import Phaser from 'phaser';
-import GameScene from './GameScene';
 
-export default function Game() {
+import GameScene from './GameScene';
+import type { GameControls } from './Controls';
+
+type GameProps = {
+    controls: GameControls;
+};
+
+export default function Game({ controls }: GameProps) {
     const gameRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -16,20 +22,27 @@ export default function Game() {
             width: 800,
             height: 500,
             parent: gameRef.current,
-            scene: [GameScene],
+
+            scene: [new GameScene(controls)],
+
             physics: {
-            default: 'arcade',
-            arcade: {
-                gravity: { x: 0, y: 1500 },
-                debug: true
+                default: 'arcade',
+                arcade: {
+                    gravity: { x: 0, y: 1500 },
+                    debug: true
+                }
             }
-}
         });
 
         return () => {
             game.destroy(true);
         };
-    }, []);
+    }, [controls]);
 
-    return <div ref={gameRef} className="game-container" />;
+    return (
+        <div
+            ref={gameRef}
+            className="game-container"
+        />
+    );
 }

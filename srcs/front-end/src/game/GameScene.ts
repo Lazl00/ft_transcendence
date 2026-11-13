@@ -1,16 +1,17 @@
 
 import Phaser from 'phaser';
+import type { GameControls } from './Controls';
 
 export default class GameScene extends Phaser.Scene {
-    private coyoteTime = 100; // ms
-    private jumpBufferTime = 120; // ms
+    private coyoteTime = 100;
+    private jumpBufferTime = 120;
 
-    private dashCooldown = 500; // ms
-    private dashDuration = 150; // ms
+    private dashCooldown = 500;
+    private dashDuration = 150;
     private dashSpeed = 650;
 
     private jumpStartY = 0;
-    private fastFallStartRatio = 0.66; // Débloque le fast fall après deux tiers de la montée
+    private fastFallStartRatio = 0.66;
     private canFastFall = false;
     private fastFallAcceleration = 3500;
 
@@ -30,22 +31,19 @@ export default class GameScene extends Phaser.Scene {
     private platforms!: Phaser.Physics.Arcade.StaticGroup;
     private obstacles!: Phaser.Physics.Arcade.StaticGroup;
 
-    // AZERTY : ZQSD
+    private controls: GameControls;
+
     private keys!: {
-        up: Phaser.Input.Keyboard.Key;
-        down: Phaser.Input.Keyboard.Key;
-        left: Phaser.Input.Keyboard.Key;
-        right: Phaser.Input.Keyboard.Key;
+        left: Phaser.Input.Keyboard.Key[];
+        right: Phaser.Input.Keyboard.Key[];
+        jump: Phaser.Input.Keyboard.Key[];
+        down: Phaser.Input.Keyboard.Key[];
+        dash: Phaser.Input.Keyboard.Key[];
     };
 
-    // Flèches directionnelles
-    private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
-
-    // Touche de dash : SHIFT
-    private dashKey!: Phaser.Input.Keyboard.Key;
-
-    constructor() {
+    constructor(controls: GameControls) {
         super('GameScene');
+        this.controls = controls;
     }
 
     create() {
@@ -62,6 +60,7 @@ export default class GameScene extends Phaser.Scene {
         const ground = this.add.rectangle(
             1500, 480, 3000, 40, 0x444466
         );
+
         this.physics.add.existing(ground, true);
         this.platforms.add(ground);
 
@@ -69,12 +68,14 @@ export default class GameScene extends Phaser.Scene {
         const platform1 = this.add.rectangle(
             250, 350, 180, 20, 0x666688
         );
+
         this.physics.add.existing(platform1, true);
         this.platforms.add(platform1);
 
         const platform2 = this.add.rectangle(
             550, 250, 180, 20, 0x666688
         );
+
         this.physics.add.existing(platform2, true);
         this.platforms.add(platform2);
 
@@ -102,32 +103,29 @@ export default class GameScene extends Phaser.Scene {
         this.cameras.main.startFollow(this.player, true, 0.08, 0);
 
         // Controls
+        const keyboard = this.input.keyboard!;
 
-        // AZERTY : ZQSD
-        this.keys = this.input.keyboard!.addKeys({
-            up: Phaser.Input.Keyboard.KeyCodes.Z,
-            left: Phaser.Input.Keyboard.KeyCodes.Q,
-            down: Phaser.Input.Keyboard.KeyCodes.S,
-            right: Phaser.Input.Keyboard.KeyCodes.D
-        }) as typeof this.keys;
+        this.keys = {
+            left: this.controls.left.map(
+                key => keyboard.addKey(key)
+            ),
 
-        // QWERTY : WASD (décommenter si nécessaire)
-        /*
-        this.keys = this.input.keyboard!.addKeys({
-            up: Phaser.Input.Keyboard.KeyCodes.W,
-            left: Phaser.Input.Keyboard.KeyCodes.A,
-            down: Phaser.Input.Keyboard.KeyCodes.S,
-            right: Phaser.Input.Keyboard.KeyCodes.D
-        }) as typeof this.keys;
-        */
+            right: this.controls.right.map(
+                key => keyboard.addKey(key)
+            ),
 
-        // Flèches directionnelles
-        this.cursors = this.input.keyboard!.createCursorKeys();
+            jump: this.controls.jump.map(
+                key => keyboard.addKey(key)
+            ),
 
-        // Dash : SHIFT
-        this.dashKey = this.input.keyboard!.addKey(
-            Phaser.Input.Keyboard.KeyCodes.SHIFT
-        );
+            down: this.controls.down.map(
+                key => keyboard.addKey(key)
+            ),
+
+            dash: this.controls.dash.map(
+                key => keyboard.addKey(key)
+            )
+        };
     }
 
     private generateObstacles() {
@@ -152,11 +150,33 @@ export default class GameScene extends Phaser.Scene {
         }
     }
 
+    // Check if at least one key is held
+    private isAnyKeyDown(
+        keys: Phaser.Input.Keyboard.Key[]
+    ): boolean {
+        return keys.some(key => key.isDown);
+    }
+
+    // Check if at least one key was just pressed
+    private isAnyKeyJustDown(
+        keys: Phaser.Input.Keyboard.Key[]
+    ): boolean {
+        let pressed = false;
+
+        keys.forEach(key => {
+            if (Phaser.Input.Keyboard.JustDown(key)) {
+                pressed = true;
+            }
+        });
+
+        return pressed;
+    }
+
     update() {
         const body = this.player.body as Phaser.Physics.Arcade.Body;
         const delta = this.game.loop.delta;
 
-        // Ground detection + recharge des capacités aériennes
+        // Ground detection + recharge
         if (body.onFloor()) {
             this.has_double_jump = true;
             this.has_air_dash = true;
@@ -165,12 +185,12 @@ export default class GameScene extends Phaser.Scene {
             this.coyoteTimer -= delta;
         }
 
-        // Recharge du dash au sol
+        // Dash cooldown
         if (this.dashCooldownTimer > 0) {
             this.dashCooldownTimer -= delta;
         }
 
-        // Fin du dash
+        // End dash
         if (this.isDashing) {
             this.dashTimer -= delta;
 
@@ -180,24 +200,23 @@ export default class GameScene extends Phaser.Scene {
             }
         }
 
-        // Horizontal movement : ZQSD OU flèches
-        const right = this.keys.right.isDown || this.cursors.right.isDown;
-        const left = this.keys.left.isDown || this.cursors.left.isDown;
+        // Horizontal movement
+        const right = this.isAnyKeyDown(this.keys.right);
+        const left = this.isAnyKeyDown(this.keys.left);
 
-        // Mémorisation de la direction
+        // Facing direction
         if (right && !left) {
             this.facingDirection = 1;
         } else if (left && !right) {
             this.facingDirection = -1;
         }
 
-        // Dash : SHIFT
-        if (
-            Phaser.Input.Keyboard.JustDown(this.dashKey) &&
-            !this.isDashing
-        ) {
+        // Dash
+        const dashPressed = this.isAnyKeyJustDown(this.keys.dash);
+
+        if (dashPressed && !this.isDashing) {
             if (body.onFloor() && this.dashCooldownTimer <= 0) {
-                // Dash au sol
+                // Ground dash
                 this.startDash(body);
                 this.dashCooldownTimer = this.dashCooldown;
             } else if (!body.onFloor() && this.has_air_dash) {
@@ -207,7 +226,7 @@ export default class GameScene extends Phaser.Scene {
             }
         }
 
-        // Horizontal movement (désactivé pendant le dash)
+        // Horizontal movement
         if (!this.isDashing) {
             if (right && !left) {
                 body.setVelocityX(400);
@@ -218,12 +237,10 @@ export default class GameScene extends Phaser.Scene {
             }
         }
 
-        // Jump buffer : Z OU flèche du haut OU ESPACE
-        if (
-            Phaser.Input.Keyboard.JustDown(this.keys.up) ||
-            Phaser.Input.Keyboard.JustDown(this.cursors.up) ||
-            Phaser.Input.Keyboard.JustDown(this.cursors.space)
-        ) {
+        // Jump buffer
+        const jumpPressed = this.isAnyKeyJustDown(this.keys.jump);
+
+        if (jumpPressed) {
             this.jumpBufferTimer = this.jumpBufferTime;
         } else {
             this.jumpBufferTimer = Math.max(
@@ -264,9 +281,7 @@ export default class GameScene extends Phaser.Scene {
             this.jumpBufferTimer = 0;
         }
 
-        // Fast fall : S OU flèche du bas
-        // Ne fonctionne que si le joueur descend suffisamment vite
-        // Fast fall : disponible dans le dernier tiers de la montée
+        // Fast fall unlock
         if (!this.isDashing && !this.canFastFall) {
             const jumpHeight = this.jumpStartY - body.y;
             const maxJumpHeight = (450 * 450) / (2 * 1500);
@@ -276,11 +291,11 @@ export default class GameScene extends Phaser.Scene {
             }
         }
 
-        // Application du Fast Fall
+        // Fast fall
         if (!this.isDashing) {
             if (
                 this.canFastFall &&
-                (this.keys.down.isDown || this.cursors.down.isDown)
+                this.isAnyKeyDown(this.keys.down)
             ) {
                 body.setAccelerationY(this.fastFallAcceleration);
             } else {
@@ -289,19 +304,19 @@ export default class GameScene extends Phaser.Scene {
         }
     }
 
-    // Démarre un dash horizontal
+    // Start horizontal dash
     private startDash(body: Phaser.Physics.Arcade.Body) {
         this.isDashing = true;
         this.dashTimer = this.dashDuration;
 
-        // Conserve la dernière direction connue
+        // Last known direction
         this.dashDirection = this.facingDirection;
 
-        // Désactive temporairement la gravité
+        // Disable gravity
         body.allowGravity = false;
         body.setAccelerationY(0);
 
-        // Impulsion horizontale
+        // Horizontal impulse
         body.setVelocity(
             this.dashDirection * this.dashSpeed,
             0

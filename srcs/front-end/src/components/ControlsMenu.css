@@ -1,0 +1,58 @@
+
+.controls-menu {
+    width: min(500px, 90%);
+    margin: 60px auto;
+    padding: 30px;
+    text-align: center;
+    color: white;
+    background: #171923;
+    border-radius: 16px;
+}
+
+.preset-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 30px 0;
+}
+
+.preset-list button {
+    display: flex;
+    justify-content: space-between;
+    padding: 18px;
+    color: white;
+    background: #292d3e;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.preset-list button.selected {
+    border-color: #48a9ff;
+    background: #343d55;
+}
+
+.preset-list button span {
+    color: #aab4cc;
+}
+
+.controls-description {
+    margin: 25px 0;
+    color: #c4c9d4;
+    text-align: left;
+}
+
+.play-button {
+    width: 100%;
+    padding: 16px;
+    color: white;
+    background: #2879d0;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.play-button:hover {
+    background: #3995ed;
+}

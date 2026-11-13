@@ -1,4 +1,4 @@
-import {calc_dist_sqrt, calc_dist_axe} from "./distance.js"
+import {calc_dist_sqrt/*, calc_dist_axe*/} from "./distance.js"
 import type {e, f} from "./struct.js"
 
 

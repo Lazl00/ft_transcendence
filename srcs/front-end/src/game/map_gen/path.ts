@@ -1,8 +1,10 @@
-import { createRand } from "./rand.js";
+//import { createRand } from "./rand.js";
 import type {e, f} from "./struct.js"
 
 export function path(fixed: e, th: f , rand: () => number, sy: number): number
 {
+	console.log(fixed);
+	
 	let x: number = 1;
 	let y: number = sy - 1;
 

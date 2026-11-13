@@ -3,7 +3,7 @@ import {path} from "./path.js"
 //import {calc_dist_sqrt, calc_dist_axe} from "./distance.js"
 import {spike} from "./put_spike.js"
 import type {e, f} from "./struct.js"
-import TileCode, { type GameMap } from './../ColorGrid.js';
+import { type GameMap } from './../ColorGrid.js';
 //fixed value that necver changes
 
 export function map_gen(): GameMap
@@ -13,7 +13,7 @@ export function map_gen(): GameMap
 	};
 	// seed dependant value
 
-	let th: f ={seed: 1229,
+	let th: f ={seed: 123493,
 		cluster_max: 3, cluster_min: 1, n_way: 1, s_safe: 4,
 		safe_path_1: Array.from({length: fixed.len}, () => -10),
 		map: Array.from({length: fixed.height}, () => Array(fixed.len).fill('E'))

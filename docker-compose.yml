@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   nginx:
-    build: ./srcs/nginx
+    build: ./srcs/front-end
     container_name: nginx
     restart: unless-stopped
     ports:

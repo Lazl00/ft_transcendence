@@ -1,10 +1,12 @@
 import './App.css';
-import Game from './game/Game';
+// import Game from './game/Game';
+import HomePage from './game/HomePage';
 
 function App() {
     return (
         <main>
-            <Game />
+            {/* <Game /> */}
+            <HomePage />
         </main>
     );
 }

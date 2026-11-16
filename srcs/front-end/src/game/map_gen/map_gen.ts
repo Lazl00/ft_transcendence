@@ -4,11 +4,12 @@ import {path} from "./path.js"
 import {spike} from "./put_spike.js"
 import type {e, f} from "./struct.js"
 import { type GameMap } from './../ColorGrid.js';
+import { put_roof } from "./put_roof.js"
 //fixed value that necver changes
 
 export function map_gen(): GameMap
 {
-	let fixed: e = {jsize: 3, height: 10, len: 41,
+	let fixed: e = {jsize: 3, height: 11, len: 41,
 		s_height: 7, column: 3
 	};
 	// seed dependant value
@@ -51,7 +52,7 @@ export function map_gen(): GameMap
 	th.map[ey][fixed.len - 2] = 'F';
 
 	spike(fixed, th, rand);
-
+	put_roof(fixed, th, rand);
 	return th.map;
 }
 

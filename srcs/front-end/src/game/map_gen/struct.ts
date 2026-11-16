@@ -1,11 +1,11 @@
 import type { GameMap } from './../ColorGrid.js';
 
 export type e = {
-	jsize: number;
-	height: number;
-	len: number;
-	s_height: number;
-	column: number;
+	jsize: number; //jump size
+	height: number; // hauteur de la map
+	len: number; // largeur de la map
+	s_height: number; // hauteur max du start
+	column: number; // taille d une colonne pour le chemin
 }
 
 export type f={

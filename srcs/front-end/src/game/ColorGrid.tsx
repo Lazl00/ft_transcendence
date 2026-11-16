@@ -2,7 +2,7 @@ import './ColorGrid.css';
 import { map_gen } from "./map_gen/map_gen.js";
 
 // Defining the types for the tile codes and the game map
-export type TileCode = 'W' | 'E' | 'G' | 'P' | 'S' | 'F';
+export type TileCode = 'W' | 'E' | 'G' | 'P' | 'S' | 'F' | 'R';
 export type GameMap = TileCode[][];
 
 
@@ -31,6 +31,7 @@ const tileColors: Record<TileCode, string> = {
     P: '#f05454',
     S: '#4e4ec8',
     F: '#17d05b',
+	R: '#a7b10ff7'
 };
 
 // The ColorGrid component renders a grid of colored cells based on the provided game map.

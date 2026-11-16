@@ -14,7 +14,8 @@ export type f={
 	cluster_min: number;//min size of trap
 	n_way: number; //number of path possible
 	s_safe: number;//size of safe place max
-	safe_path_1: number[];//the emplacement of the first safe path
+	safe_path_1: number[];//the emplacement of the first safe path the rank is the x value and the number is the y value
+	safe_path_2: number[];//the emplacement of the first safe path
 	map: GameMap;
 }
 

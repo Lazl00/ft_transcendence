@@ -19,7 +19,7 @@ export function put_roof (fixed: e, th: f, rand: () => number) : number
 		}
 		else if (t < 4)
 		{
-			if (s + th.safe_path_1[j] < fixed.height - 3)
+			if (s + th.safe_path_1[j] < fixed.height - 4)
 				s++;
 			if (s + th.safe_path_1[j] > fixed.height - 3)
 				s--;
@@ -28,7 +28,7 @@ export function put_roof (fixed: e, th: f, rand: () => number) : number
 		}
 		else
 		{
-			if (s + th.safe_path_1[j] > fixed.height - 3)
+			if (s + th.safe_path_1[j] > fixed.height - 4)
 				s--;
 			for(let i = 0; i < s; i++)
 				th.map[fixed.height - i - 1][j]= 'R';

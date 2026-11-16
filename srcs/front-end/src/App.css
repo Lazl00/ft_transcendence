@@ -1,5 +1,5 @@
 main {
-    position: fixed;
+    /* position: fixed; */
     inset: 0;
     display: flex;
     flex-direction: column;

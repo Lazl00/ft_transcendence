@@ -28,6 +28,7 @@ h2 {
     transition: background-color 0.2s, transform 0.1s;
     padding: 1rem 2rem;
     margin-top: 1rem;
+    margin-bottom: 2rem;
     border-radius: 12px;
 }
 

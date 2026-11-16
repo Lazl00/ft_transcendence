@@ -1,22 +1,9 @@
-.home {
-    min-height: 100vh;
+.home-page {
     display: flex;
     flex-direction: column;
-    align-items: center;      /* centre le titre et le menu horizontalement */
-    padding-top: 4rem;        /* titre "en haut" */
-    gap: 3rem;                /* espace entre le titre et les boutons */
-    font-family: 'Press Start 2P', monospace;
+    align-items: center;
     width: 100%;
-}
-
-.home-title {
-    font-size: 2.5rem;
-    line-height: 1.4;
-    margin: 0;
-    text-align: center;
-    letter-spacing: 0;
-    text-transform: uppercase;
-    color: white;
+    font-family: 'Press Start 2P', monospace;
 }
 
 h2 {
@@ -28,41 +15,31 @@ h2 {
     color: white;
 }
 
-.home-menu {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);   /* 2 colonnes égales */
-    gap: 1.5rem;
-}
-
-.menu-button {
-    width: 14rem;
-    height: 5rem;
+.back-button {
+    width: auto;
+    height: auto;
     font-family: inherit;    /* IMPORTANT : les <button> n'héritent pas la police par défaut */
     font-size: 1rem;
     font-weight: bold;
     color: white;
     background-color: #4f46e5;
     border: none;
-    border-radius: 12px;
     cursor: pointer;
     transition: background-color 0.2s, transform 0.1s;
+    padding: 1rem 2rem;
+    margin-top: 1rem;
+    border-radius: 12px;
 }
 
-.menu-button:hover {
+.back-button:hover {
     background-color: #46e679;
 }
 
-.menu-button:active {
+.back-button:active {
     transform: scale(0.97);
 }
 
-.menu-button:focus-visible {
+.back-button:focus-visible {
     outline: 2px solid white;
     outline-offset: 2px;
-}
-
-.back-button {
-    width: auto;
-    height: auto;
-    padding: 1rem 2rem;
 }

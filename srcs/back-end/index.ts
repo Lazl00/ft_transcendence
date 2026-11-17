@@ -15,24 +15,64 @@ app.register(fastifyPostgres, {
     connectionString: connectionString,
 });
 
+// Get all players profiles
 app.get('/api/get/players', async (req, reply) => {
-    // 1. Run the query on the database
     const { rows } = await app.pg.query('SELECT * FROM players');
-
-    // 2. Return the result. Fastify turns it into JSON and sends it to the client
     return rows;
 });
 
-// INSERT INTO shop_items (name, type, price, asset_path) VALUES ('Gragas sous Jack D', 'SKIN', 2500, 'skins/gragas/jackd'), ('Dash electrique', 'ANIMATION', 500, '/animation/dashelectrique');
-// INSERT INTO players (username, money, level) VALUES ('Lucas', 200, 100), ('Bob', 50, 35), ('Alice', 1532, 7);
-
+// Get all items from the shop
 app.get('/api/get/shop', async (req, reply) => {
-    // 1. Run the query on the database
     const { rows } = await app.pg.query('SELECT * FROM shop_items');
-
-    // 2. Return the result. Fastify turns it into JSON and sends it to the client
     return rows;
 });
+
+// Get user friendlist (Friends, invite sent, invite received)
+app.get<{ Params: { id: string } }>('/api/get/players/:id/friends', async (req, reply) => {
+    const { rows } = await app.pg.query(
+        `SELECT p.id, p.username, p.level, p.avatar_path FROM friendlist f
+         JOIN players p ON p.id = CASE WHEN f.player1 = $1 THEN f.player2 ELSE f.player1 END
+         WHERE (f.player1 = $1 OR f.player2 = $1)
+           AND f.invite_status = 'accepted'`,
+        [req.params.id]
+    );
+    return rows;
+});
+
+// Get all the achievements
+app.get('/api/get/achievements', async (req, reply) => {
+    const { rows } = await app.pg.query('SELECT * FROM achievements');
+    return rows;
+});
+
+// Get player unlocked achievements
+app.get<{ Params: { id: string } }>('/api/get/players/:id/achievements', async (req, reply) => {
+    const { rows } = await app.pg.query(
+        `SELECT a.id, a.name, a.unlock_condition, pa.acquired_at FROM players_achievements pa
+         JOIN achievements a ON a.id = pa.achievement_id WHERE pa.player_id = $1
+         ORDER BY pa.acquired_at DESC`,
+        [req.params.id]
+    );
+    return rows;
+});
+
+// Get all the matches played
+app.get('/api/get/match_history', async (req, reply) => {
+    const { rows } = await app.pg.query('SELECT * FROM match_history');
+    return rows;
+});
+
+// Get player history matches
+app.get<{ Params: { id: string } }>('/api/get/players/:id/matches', async (req, reply) => {
+    const { rows } = await app.pg.query(
+        `SELECT match_id, is_winner, gamemode, status, started_at, finished_at FROM player_history
+         JOIN match_history ON id = match_id WHERE player_id = $1
+         ORDER BY finished_at DESC`,
+        [req.params.id]
+    );
+    return rows;
+});
+
 
 // Start the server once all routes are declared
 const start = async () => {

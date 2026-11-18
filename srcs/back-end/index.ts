@@ -28,14 +28,30 @@ app.get('/api/get/shop', async (req, reply) => {
 });
 
 // Get user friendlist (Friends, invite sent, invite received)
-app.get<{ Params: { id: string } }>('/api/get/players/:id/friends', async (req, reply) => {
+app.get<{ Params: { id: number } }>('/api/get/players/:id/friends', {
+    schema: {
+        params: {
+            type: 'object',
+            properties:
+                { id: { type: 'integer', minimum: 1, maximum: 2147483647} },
+            required: ['id'],
+            additionalProperties: false,
+        },
+    },
+}, async (req, reply) => {
+
+    const player = await app.pg.query('SELECT 1 FROM players WHERE id = $1', [req.params.id]);
+    if (player.rows.length === 0){
+        return reply.code(404).send({ error: 'Player not found' });
+    }
+
     const { rows } = await app.pg.query(
-        `SELECT p.id, p.username, p.level, p.avatar_path FROM friendlist f
+        `SELECT p.id, p.username, p.level, p.avatar_path, f.invite_status, (f.player1 = $1) AS sent_by_me FROM friendlist f
          JOIN players p ON p.id = CASE WHEN f.player1 = $1 THEN f.player2 ELSE f.player1 END
-         WHERE (f.player1 = $1 OR f.player2 = $1)
-           AND f.invite_status = 'accepted'`,
+         WHERE (f.player1 = $1 OR f.player2 = $1)`,
         [req.params.id]
     );
+
     return rows;
 });
 

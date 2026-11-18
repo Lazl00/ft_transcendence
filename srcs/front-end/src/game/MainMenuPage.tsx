@@ -14,12 +14,21 @@ function MainMenuPage({ onSelectView, screen }: HomeScreenProps) {
           <button className="menu-button nav-button" onClick={() => onSelectView('stats')}><i className="fa-solid fa-list"></i></button>
           <button className="menu-button nav-button" onClick={() => onSelectView('replay')}><i className="fa-solid fa-arrow-rotate-left"></i></button>
         </div>
-        <button className="menu-button play-button" onClick={() => onSelectView('new-game')}><i className="fa-solid fa-play"></i></button>
+        {screen !== 'new-game' && (
+          <h1 className="home-title">Pokipo</h1>
+        )}
+        {screen === 'new-game' && (
+          <p className="small-title">Pokipo</p>
+        )}
         <div className="menu-side menu-right">
+          <p className="coin-count">1000</p>
+          <img className="coin-icon" src="/imgs/money/money.png" alt="Pokipo Logo" />
           <button className="menu-button nav-button" onClick={() => onSelectView('shop')}><i className="fa-solid fa-cart-shopping"></i></button>
         </div>
       </div>
-      {screen === 'menu' && <h1 className="home-title">Pokipo</h1>}
+      {screen === 'menu' && (
+        <button className="menu-button play-button" onClick={() => onSelectView('new-game')}><i className="fa-solid fa-play"></i></button>
+      )}
     </div>
   );
 };

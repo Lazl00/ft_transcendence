@@ -1,1 +1,1 @@
-export type Screen = 'menu' | 'new-game' | 'join-game' | 'stats' | 'shop';
+export type Screen = 'menu' | 'new-game' | 'replay' | 'stats' | 'shop';

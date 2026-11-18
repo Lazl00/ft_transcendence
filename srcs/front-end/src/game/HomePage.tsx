@@ -22,10 +22,10 @@ function HomePage() {
                     <ColorGrid map={placeholderMap} />
                     <button className="back-button" onClick={() => setCurrentView('menu')}>Back</button>;
                 </>;
-            case 'join-game':
+            case 'replay':
                 return <>
                     <MainMenuPage onSelectView={setCurrentView} screen={currentView} />
-                    <h2>Join Game Screen</h2>
+                    <h2>Replay</h2>
                     <button className="back-button" onClick={() => setCurrentView('menu')}>Back</button>
                 </>;
             case 'stats':

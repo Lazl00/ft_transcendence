@@ -28,23 +28,55 @@ const idParams = {
 };
 
 // Get all players profiles
-app.get('/api/get/players', async (req, reply) => {
-    const { rows } = await app.pg.query('SELECT * FROM players');
+app.get('/api/players', async (req, reply) => {
+    const { rows } = await app.pg.query(
+        'SELECT p.id, p.username, p.level, p.xp, p.money, p.avatar_path FROM players p');
     return (rows);
 });
 
+// Get single player profile
+app.get<{ Params: { id: number } }>('/api/players/:id', { schema: idParams }, async (req, reply) => {
+    const { rows } = await app.pg.query(
+        'SELECT id, username, level, xp, money, avatar_path FROM players WHERE id = $1',
+        [req.params.id]
+    );
+    if (rows.length === 0) {
+        return (reply.code(404).send({ statusCode: 404, error: 'Not Found', message: 'Player not found' }));
+    }
+    return (rows[0]);
+});
+
+
 // Get all items from the shop
-app.get('/api/get/shop', async (req, reply) => {
+app.get('/api/shop', async (req, reply) => {
     const { rows } = await app.pg.query('SELECT * FROM shop_items');
     return (rows);
 });
 
-// Get user friendlist (Friends, invite sent, invite received)
-app.get<{ Params: { id: number } }>('/api/get/players/:id/friends', { schema: idParams }, async (req, reply) => {
+// Get user items/inventory
+app.get<{ Params: { id: number } }>('/api/players/:id/inventory', { schema: idParams }, async (req, reply) => {
 
     const player = await app.pg.query('SELECT 1 FROM players WHERE id = $1', [req.params.id]);
     if (player.rows.length === 0) {
-        return (reply.code(404).send({ error: 'Player not found' }));
+        return (reply.code(404).send({ statusCode: 404, error: 'Not Found', message: 'Player not found' }));
+    }
+
+    const { rows } = await app.pg.query(
+        `SELECT si.id, si.name, si.type, si.price, si.asset_path, pi.acquired_at FROM players_items pi
+        JOIN shop_items si ON si.id = pi.item_id WHERE pi.player_id = $1
+        ORDER BY pi.acquired_at DESC`,
+        [req.params.id]
+    );
+
+    return (rows);
+});
+
+// Get user friendlist (Friends, invite sent, invite received)
+app.get<{ Params: { id: number } }>('/api/players/:id/friends', { schema: idParams }, async (req, reply) => {
+
+    const player = await app.pg.query('SELECT 1 FROM players WHERE id = $1', [req.params.id]);
+    if (player.rows.length === 0) {
+        return (reply.code(404).send({ statusCode: 404, error: 'Not Found', message: 'Player not found' }));
     }
 
     const { rows } = await app.pg.query(
@@ -58,17 +90,17 @@ app.get<{ Params: { id: number } }>('/api/get/players/:id/friends', { schema: id
 });
 
 // Get all the achievements
-app.get('/api/get/achievements', async (req, reply) => {
+app.get('/api/achievements', async (req, reply) => {
     const { rows } = await app.pg.query('SELECT * FROM achievements');
     return (rows);
 });
 
 // Get player unlocked achievements
-app.get<{ Params: { id: number } }>('/api/get/players/:id/achievements', { schema: idParams }, async (req, reply) => {
+app.get<{ Params: { id: number } }>('/api/players/:id/achievements', { schema: idParams }, async (req, reply) => {
 
     const player = await app.pg.query('SELECT 1 FROM players WHERE id = $1', [req.params.id]);
     if (player.rows.length === 0) {
-        return (reply.code(404).send({ error: 'Player not found' }));
+        return (reply.code(404).send({ statusCode: 404, error: 'Not Found', message: 'Player not found' }));
     }
 
     const { rows } = await app.pg.query(
@@ -82,18 +114,18 @@ app.get<{ Params: { id: number } }>('/api/get/players/:id/achievements', { schem
 });
 
 // Get all the matches played
-app.get('/api/get/match_history', async (req, reply) => {
+app.get('/api/matches', async (req, reply) => {
     const { rows } = await app.pg.query('SELECT * FROM match_history');
     return (rows);
 });
 
 // Get player history matches
 // A player with no matches gets 200 with [] (not an error)
-app.get<{ Params: { id: number } }>('/api/get/players/:id/matches', { schema: idParams }, async (req, reply) => {
+app.get<{ Params: { id: number } }>('/api/players/:id/matches', { schema: idParams }, async (req, reply) => {
 
     const player = await app.pg.query('SELECT 1 FROM players WHERE id = $1', [req.params.id]);
     if (player.rows.length === 0) {
-        return (reply.code(404).send({ error: 'Player not found' }));
+        return (reply.code(404).send({ statusCode: 404, error: 'Not Found', message: 'Player not found' }));
     }
 
     const { rows } = await app.pg.query(

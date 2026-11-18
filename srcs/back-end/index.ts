@@ -18,13 +18,13 @@ app.register(fastifyPostgres, {
 // Get all players profiles
 app.get('/api/get/players', async (req, reply) => {
     const { rows } = await app.pg.query('SELECT * FROM players');
-    return rows;
+    return (rows);
 });
 
 // Get all items from the shop
 app.get('/api/get/shop', async (req, reply) => {
     const { rows } = await app.pg.query('SELECT * FROM shop_items');
-    return rows;
+    return (rows);
 });
 
 // Get user friendlist (Friends, invite sent, invite received)
@@ -42,7 +42,7 @@ app.get<{ Params: { id: number } }>('/api/get/players/:id/friends', {
 
     const player = await app.pg.query('SELECT 1 FROM players WHERE id = $1', [req.params.id]);
     if (player.rows.length === 0){
-        return reply.code(404).send({ error: 'Player not found' });
+        return (reply.code(404).send({ error: 'Player not found' }));
     }
 
     const { rows } = await app.pg.query(
@@ -52,30 +52,46 @@ app.get<{ Params: { id: number } }>('/api/get/players/:id/friends', {
         [req.params.id]
     );
 
-    return rows;
+    return (rows);
 });
 
 // Get all the achievements
 app.get('/api/get/achievements', async (req, reply) => {
     const { rows } = await app.pg.query('SELECT * FROM achievements');
-    return rows;
+    return (rows);
 });
 
 // Get player unlocked achievements
-app.get<{ Params: { id: string } }>('/api/get/players/:id/achievements', async (req, reply) => {
+app.get<{ Params: { id: number } }>('/api/get/players/:id/achievements', {
+    schema: {
+        params: {
+            type: 'object',
+            properties:
+                { id: { type: 'integer', minimum: 1, maximum: 2147483647} },
+            required: ['id'],
+            additionalProperties: false,
+        },
+    },
+}, async (req, reply) => {
+
+    const player = await app.pg.query('SELECT 1 FROM players WHERE id = $1', [req.params.id]);
+    if (player.rows.length === 0)
+            return (reply.code(404).send({error: 'Player not found'}))
+
     const { rows } = await app.pg.query(
         `SELECT a.id, a.name, a.unlock_condition, pa.acquired_at FROM players_achievements pa
          JOIN achievements a ON a.id = pa.achievement_id WHERE pa.player_id = $1
          ORDER BY pa.acquired_at DESC`,
         [req.params.id]
     );
-    return rows;
+
+    return (rows);
 });
 
 // Get all the matches played
 app.get('/api/get/match_history', async (req, reply) => {
     const { rows } = await app.pg.query('SELECT * FROM match_history');
-    return rows;
+    return (rows);
 });
 
 // Get player history matches
@@ -86,7 +102,7 @@ app.get<{ Params: { id: string } }>('/api/get/players/:id/matches', async (req, 
          ORDER BY finished_at DESC`,
         [req.params.id]
     );
-    return rows;
+    return (rows);
 });
 
 

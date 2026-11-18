@@ -4,6 +4,7 @@ import ColorGrid, { placeholderMap } from './ColorGrid';
 import MainMenuPage from './MainMenuPage';
 import StatsPage from './StatsPage';
 import type { Screen } from './PageTypes';
+import ShopPage from './ShopPage';
 
 // The HomePage component manages the navigation between different screens of the game.
 function HomePage() {
@@ -38,7 +39,7 @@ function HomePage() {
             case 'shop':
                 return <>
                     <MainMenuPage onSelectView={setCurrentView} screen={currentView} />
-                    <h2>Shop Screen</h2>
+                    <ShopPage />
                     <button className="back-button" onClick={() => setCurrentView('menu')}>Back</button>
                 </>;
             default:

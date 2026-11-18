@@ -28,6 +28,14 @@ services:
     build: ./srcs/back-end
     restart: unless-stopped
     container_name: back-end
+    environment:
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+    depends_on:
+      - database
+    ports:
+      - "3000:3000"
     networks:
       - internal-network
 

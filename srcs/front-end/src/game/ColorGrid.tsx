@@ -44,7 +44,7 @@ function ColorGrid({ map }: { map: GameMap }) {
             className="color-grid"
             style={{
                 gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
-                width: `min(100%, 75vw, 133.33vh)`,
+                width: `min(100%, 90vw, 150vh)`,
             }}
         >
             {/* Mapping over the game map to create individual colored cells for each tile */}

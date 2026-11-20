@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import Game from './Game';
 import './HomePage.css';
-import ColorGrid, { placeholderMap } from './ColorGrid';
+//import ColorGrid, { placeholderMap } from './ColorGrid';
 import MainMenuPage from './MainMenuPage';
 import StatsPage from './StatsPage';
 import type { Screen } from './PageTypes';
@@ -20,7 +21,8 @@ function HomePage() {
             case 'new-game':
                 return <>
                     <MainMenuPage onSelectView={setCurrentView} screen={currentView} />
-                    <ColorGrid map={placeholderMap} />
+                    {/* <ColorGrid map={placeholderMap} /> */}
+					<Game />
                     <button className="back-button" onClick={() => setCurrentView('menu')}>Back</button>;
                 </>;
             case 'replay':

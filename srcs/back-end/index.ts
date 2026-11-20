@@ -7,7 +7,6 @@ const app: FastifyInstance = Fastify({
 });
 
 // The string used to connect to our PostgreSQL database
-// "database" is the service name in docker-compose.yml (containers reach each other by service name)
 const connectionString = `postgres://${process.env.DB_USER}:${process.env.DB_PASSWORD}@database:5432/${process.env.DB_NAME}`;
 
 // Register the module
@@ -27,11 +26,39 @@ const idParams = {
     },
 };
 
+// Shared schema for player
+const createPlayerSchema = {
+    body: {
+        type: 'object',
+        properties: {
+            username: {type: 'string', minLength: 1, maxLength: 32}},
+        required: ['username'],
+        additionalProperties: false,
+    }
+};
+
 // Get all players profiles
 app.get('/api/players', async (req, reply) => {
     const { rows } = await app.pg.query(
         'SELECT p.id, p.username, p.level, p.xp, p.money, p.avatar_path FROM players p');
     return (rows);
+});
+
+// POST new player
+app.post<{ Body: { username: string } }>(
+'/api/players', { schema: createPlayerSchema }, async (req, reply) => {
+    try {
+        const { rows } = await app.pg.query(
+            `INSERT INTO players (username) VALUES ($1)
+             RETURNING id, username, level, xp, money, avatar_path`,
+            [req.body.username]
+        );
+        return reply.code(201).send(rows[0]);
+    } catch (err: any) {
+        if (err.code === '23505')
+            return reply.code(409).send({ error: 'Username already taken' });
+        throw err;
+    }
 });
 
 // Get single player profile
@@ -45,7 +72,6 @@ app.get<{ Params: { id: number } }>('/api/players/:id', { schema: idParams }, as
     }
     return (rows[0]);
 });
-
 
 // Get all items from the shop
 app.get('/api/shop', async (req, reply) => {

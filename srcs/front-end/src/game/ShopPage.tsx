@@ -12,28 +12,28 @@ const items: ShopItem[] = [
   {
     id: 'neon-suit',
     name: 'Neon Suit',
-    image: '/favicon.svg',
+    image: '/imgs/skins/skin_neon-32x.png',
     price: 250,
     description: 'A bright look for your next match.',
   },
   {
     id: 'steampunk-armor',
     name: 'Steampunk Armor',
-    image: '/favicon.svg',
+    image: '/imgs/skins/skin_steampunk-32x.png',
     price: 350,
     description: 'A stylish armor for the victors.',
   },
   {
     id: 'samurai-armor',
     name: 'Samurai Armor',
-    image: '/favicon.svg',
+    image: '/imgs/skins/skin_samurai-32x.png',
     price: 450,
     description: 'A traditional armor for the brave.',
   },
   {
     id: 'transcendence-aura',
     name: 'Transcendence Aura',
-    image: '/favicon.svg',
+    image: '/imgs/skins/skin_transcendence-32x.png',
     price: 1000,
     description: 'A powerful aura for the chosen one.',
   }

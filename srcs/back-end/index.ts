@@ -30,7 +30,7 @@ const idParams = {
 // Get all players profiles
 app.get('/api/players', async (req, reply) => {
     const { rows } = await app.pg.query(
-        'SELECT p.id, p.username, p.level, p.xp, p.money, p.avatar_path FROM players p');
+        'SELECT p.id, p.username, p.level, p.xp, p.money, p.avatar_path FROM players p ORDER BY p.id ASC');
     return (rows);
 });
 

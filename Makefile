@@ -6,6 +6,9 @@ up:
 down:
 	docker compose down
 
+re: down
+	$(MAKE) up
+
 build:
 	docker compose build
 

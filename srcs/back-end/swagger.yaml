@@ -36,6 +36,38 @@ paths:
                   $ref: '#/components/schemas/Player'
         '500':
           $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Players]
+      summary: Create a new player
+      description: Only the username is set. level, xp, money and avatar_path take their database defaults.
+      operationId: createPlayer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewPlayer'
+      responses:
+        '201':
+          description: The created player
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          description: Username already taken
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                statusCode: 409
+                error: Conflict
+                message: Username already taken
+        '500':
+          $ref: '#/components/responses/InternalError'
 
   /api/players/{id}:
     get:
@@ -131,6 +163,49 @@ paths:
           $ref: '#/components/responses/PlayerNotFound'
         '500':
           $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Players, Achievements]
+      summary: Unlock an achievement for a player
+      operationId: unlockPlayerAchievement
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnlockAchievement'
+      responses:
+        '201':
+          description: The unlock record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerAchievement'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          description: The player or the achievement does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                statusCode: 404
+                error: Not Found
+                message: Player or achievement not found
+        '409':
+          description: The player already has this achievement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                statusCode: 409
+                error: Conflict
+                message: Achievement already unlocked
+        '500':
+          $ref: '#/components/responses/InternalError'
 
   /api/players/{id}/matches:
     get:
@@ -172,6 +247,37 @@ paths:
                   $ref: '#/components/schemas/ShopItem'
         '500':
           $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Shop]
+      summary: Add a new shop item
+      operationId: createShopItem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewShopItem'
+      responses:
+        '201':
+          description: The created item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopItem'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          description: Item name already used
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                statusCode: 409
+                error: Conflict
+                message: Item name already used
+        '500':
+          $ref: '#/components/responses/InternalError'
 
   /api/achievements:
     get:
@@ -187,6 +293,37 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Achievement'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Achievements]
+      summary: Add a new achievement
+      operationId: createAchievement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewAchievement'
+      responses:
+        '201':
+          description: The created achievement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Achievement'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          description: Achievement name already used
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                statusCode: 409
+                error: Conflict
+                message: Achievement name already used
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -231,6 +368,17 @@ components:
             code: FST_ERR_VALIDATION
             error: Bad Request
             message: params/id must be integer
+    ValidationError:
+      description: Invalid id or request body (invalid JSON, missing field, wrong type, out of range)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            statusCode: 400
+            code: FST_ERR_VALIDATION
+            error: Bad Request
+            message: body must have required property 'username'
     PlayerNotFound:
       description: No player with this id
       content:
@@ -273,6 +421,13 @@ components:
         money:       { type: integer, minimum: 0, example: 1532 }
         avatar_path: { type: string, maxLength: 255, example: /avatars/defaults/default1.png }
 
+    NewPlayer:
+      type: object
+      required: [username]
+      additionalProperties: false
+      properties:
+        username: { type: string, minLength: 1, maxLength: 32, example: Alice }
+
     Friend:
       type: object
       description: The other player in a friendship or invite
@@ -295,6 +450,16 @@ components:
         price:      { type: integer, minimum: 0, example: 500 }
         asset_path: { type: string, maxLength: 255, example: /animation/dashelectrique }
 
+    NewShopItem:
+      type: object
+      required: [name, type, price, asset_path]
+      additionalProperties: false
+      properties:
+        name:       { type: string, minLength: 1, maxLength: 64, example: Dash electrique }
+        type:       { type: string, enum: [SKIN, ANIMATION, EMOTE, BANNER], example: ANIMATION }
+        price:      { type: integer, minimum: 0, maximum: 999999, example: 500 }
+        asset_path: { type: string, minLength: 1, maxLength: 255, example: /animation/dashelectrique }
+
     InventoryItem:
       description: A shop item owned by the player
       allOf:
@@ -311,6 +476,30 @@ components:
         id:               { type: integer, example: 1 }
         name:             { type: string, maxLength: 64, example: First win }
         unlock_condition: { type: string, maxLength: 255, example: Win your first match }
+
+    NewAchievement:
+      type: object
+      required: [name, unlock_condition]
+      additionalProperties: false
+      properties:
+        name:             { type: string, minLength: 1, maxLength: 64, example: First win }
+        unlock_condition: { type: string, minLength: 1, maxLength: 255, example: Win your first match }
+
+    UnlockAchievement:
+      type: object
+      required: [achievementID]
+      additionalProperties: false
+      properties:
+        achievementID: { type: integer, minimum: 1, maximum: 2147483647, example: 1 }
+
+    PlayerAchievement:
+      type: object
+      description: A row of players_achievements, returned when an achievement is unlocked
+      required: [player_id, achievement_id, acquired_at]
+      properties:
+        player_id:      { type: integer, example: 1 }
+        achievement_id: { type: integer, example: 1 }
+        acquired_at:    { type: string, format: date-time }
 
     UnlockedAchievement:
       description: An achievement the player has unlocked

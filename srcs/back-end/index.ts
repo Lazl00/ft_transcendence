@@ -105,7 +105,7 @@ app.post<{ Body: { username: string } }>(
         return reply.code(201).send(rows[0]);
     } catch (err: any) {
         if (err.code === '23505')
-            return reply.code(409).send({ statusCode: '409', error: 'Conflict', message: 'Username arleady taken' });
+            return reply.code(409).send({ statusCode: 409, error: 'Conflict', message: 'Username already taken' });
         throw err;
     }
 });
@@ -134,7 +134,7 @@ app.post<{ Body: { name: string, type: string, price: number, asset_path: string
         const { rows } = await app.pg.query(
             `INSERT INTO shop_items (name, type, price, asset_path)
              VALUES ($1, $2, $3, $4)
-             RETURNING name, type, price, asset_path`,
+             RETURNING id, name, type, price, asset_path`,
              [req.body.name, req.body.type, req.body.price, req.body.asset_path]
         )
         return reply.code(201).send(rows[0]);

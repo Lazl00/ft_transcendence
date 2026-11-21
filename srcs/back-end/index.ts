@@ -37,7 +37,7 @@ const createPlayerSchema = {
     }
 };
 
-// Shared schema for achievements creation
+// Schema for achievements creation
 const createAchievementsSchema = {
     body: {
         type: 'object',
@@ -46,6 +46,21 @@ const createAchievementsSchema = {
             unlock_condition: {type: 'string', minLength: 1, maxLength: 255},
         },
         required: ['name', 'unlock_condition'],
+        additionalProperties: false,
+    }
+};
+
+// Schema for shop item creation
+const createShopItem = {
+    body: {
+        type: 'object',
+        properties: {
+            name: {type: 'string', minLength: 1, maxLength: 64},
+            type: {type: 'string', enum: ['SKIN', 'ANIMATION', 'EMOTE', 'BANNER']},
+            price: {type: 'integer', minimum: 0, maximum: 999999},
+            asset_path: {type: 'string', minLength: 1, maxLength: 255},
+        },
+        required: ['name', 'type', 'price', 'asset_path'],
         additionalProperties: false,
     }
 };
@@ -91,6 +106,24 @@ app.get('/api/shop', async (req, reply) => {
     const { rows } = await app.pg.query('SELECT * FROM shop_items');
     return (rows);
 });
+
+// POST add new shop item
+app.post<{ Body: { name: string, type: string, price: number, asset_path: string } }>( '/api/shop', { schema: createShopItem }, async (req, reply) => {
+    try {
+        const { rows } = await app.pg.query(
+            `INSERT INTO shop_items (name, type, price, asset_path)
+             VALUES ($1, $2, $3, $4)
+             RETURNING name, type, price, asset_path`,
+             [req.body.name, req.body.type, req.body.price, req.body.asset_path]
+        )
+        return reply.code(201).send(rows[0]);
+    } catch (err: any) {
+        if (err.code === '23505')
+            return reply.code(409).send({ statusCode: 409, error: 'Conflict', message: 'Item name already used'});
+        throw err;
+    }
+});
+
 
 // GET user items/inventory
 app.get<{ Params: { id: number } }>('/api/players/:id/inventory', { schema: playerParamsSchema }, async (req, reply) => {

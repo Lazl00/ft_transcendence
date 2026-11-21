@@ -50,6 +50,27 @@ const createAchievementsSchema = {
     }
 };
 
+// Schema for unlocking an achievement for a player
+// Player id in the URL, achievement id in the body, both within the Postgres INT range
+const unlockPlayerAchievementSchema = {
+    params: {
+        type: 'object',
+        properties: {
+            playerID: {type: 'integer', minimum: 1, maximum: 2147483647},
+        },
+        required: ['playerID'],
+        additionalProperties: false,
+    },
+    body: {
+        type: 'object',
+        properties: {
+            achievementID: {type: 'integer', minimum: 1, maximum: 2147483647},
+        },
+        required: ['achievementID'],
+        additionalProperties: false,
+    }
+};
+
 // Schema for shop item creation
 const createShopItem = {
     body: {
@@ -124,7 +145,6 @@ app.post<{ Body: { name: string, type: string, price: number, asset_path: string
     }
 });
 
-
 // GET user items/inventory
 app.get<{ Params: { id: number } }>('/api/players/:id/inventory', { schema: playerParamsSchema }, async (req, reply) => {
 
@@ -180,6 +200,23 @@ app.post<{ Body: { name: string, unlock_condition: string } }>( '/api/achievemen
     } catch (err: any) {
         if (err.code === '23505')
             return reply.code(409).send({ statusCode: 409, error: 'Conflict', message: 'Achievement name already used'});
+        throw err;
+    }
+});
+
+// POST unlock player achievement
+app.post<{ Params: { playerID: number }, Body: { achievementID: number } }>('/api/players/:playerID/achievements', { schema: unlockPlayerAchievementSchema }, async (req, reply) => {
+    try {
+        const { rows } = await app.pg.query(
+            'INSERT INTO players_achievements (player_id, achievement_id) VALUES ($1, $2) RETURNING *',
+            [req.params.playerID, req.body.achievementID]
+        );
+        return reply.code(201).send(rows[0]);
+    } catch (err: any) {
+        if (err.code === '23503') // foreign key violation: the player or achievement doesn't exist
+            return reply.code(404).send({ statusCode: 404, error: 'Not Found', message: 'Player or achievement not found' });
+        if (err.code === '23505') // unique violation: the player already has this achievement
+            return reply.code(409).send({ statusCode: 409, error: 'Conflict', message: 'Achievement already unlocked' });
         throw err;
     }
 });

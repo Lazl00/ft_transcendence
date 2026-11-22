@@ -1,0 +1,533 @@
+openapi: 3.1.0
+
+info:
+  title: ft_transcendence API
+  version: 1.0.0
+  description: Back-end API for ft_transcendence (Fastify + PostgreSQL).
+
+servers:
+  - url: http://localhost:3000
+    description: Local (direct to the back-end container)
+
+tags:
+  - name: Players
+    description: Player profiles and per-player data
+  - name: Shop
+    description: Shop items
+  - name: Achievements
+    description: Achievements
+  - name: Matches
+    description: Match history
+
+paths:
+  /api/players:
+    get:
+      tags: [Players]
+      summary: List all players
+      operationId: getPlayers
+      responses:
+        '200':
+          description: Array of players
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Player'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Players]
+      summary: Create a new player
+      description: Only the username is set. level, xp, money and avatar_path take their database defaults.
+      operationId: createPlayer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewPlayer'
+      responses:
+        '201':
+          description: The created player
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          description: Username already taken
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                statusCode: 409
+                error: Conflict
+                message: Username already taken
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/players/{id}:
+    get:
+      tags: [Players]
+      summary: Get a single player profile
+      operationId: getPlayer
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: The player
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/PlayerNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/players/{id}/inventory:
+    get:
+      tags: [Players]
+      summary: List the items a player owns
+      description: Most recently acquired first. A player with no items gets an empty array.
+      operationId: getPlayerInventory
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Array of owned items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InventoryItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/PlayerNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/players/{id}/friends:
+    get:
+      tags: [Players]
+      summary: List a player's friends and pending invites
+      description: >
+        Returns accepted friends, invites the player sent and invites the player received.
+        Each entry describes the other player. Use `invite_status` and `sent_by_me` to tell them apart.
+      operationId: getPlayerFriends
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Array of friends and invites
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Friend'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/PlayerNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/players/{id}/achievements:
+    get:
+      tags: [Players, Achievements]
+      summary: List a player's unlocked achievements
+      description: Most recently unlocked first. A player with no achievements gets an empty array.
+      operationId: getPlayerAchievements
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Array of unlocked achievements
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UnlockedAchievement'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/PlayerNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Players, Achievements]
+      summary: Unlock an achievement for a player
+      operationId: unlockPlayerAchievement
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnlockAchievement'
+      responses:
+        '201':
+          description: The unlock record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerAchievement'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          description: The player or the achievement does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                statusCode: 404
+                error: Not Found
+                message: Player or achievement not found
+        '409':
+          description: The player already has this achievement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                statusCode: 409
+                error: Conflict
+                message: Achievement already unlocked
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/players/{id}/matches:
+    get:
+      tags: [Players, Matches]
+      summary: List a player's match history
+      description: Most recently finished first. A player with no matches gets an empty array.
+      operationId: getPlayerMatches
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Array of the player's matches
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlayerMatch'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/PlayerNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/shop:
+    get:
+      tags: [Shop]
+      summary: List all shop items
+      operationId: getShopItems
+      responses:
+        '200':
+          description: Array of shop items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ShopItem'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Shop]
+      summary: Add a new shop item
+      operationId: createShopItem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewShopItem'
+      responses:
+        '201':
+          description: The created item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopItem'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          description: Item name already used
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                statusCode: 409
+                error: Conflict
+                message: Item name already used
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/achievements:
+    get:
+      tags: [Achievements]
+      summary: List all achievements
+      operationId: getAchievements
+      responses:
+        '200':
+          description: Array of achievements
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Achievement'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Achievements]
+      summary: Add a new achievement
+      operationId: createAchievement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewAchievement'
+      responses:
+        '201':
+          description: The created achievement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Achievement'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          description: Achievement name already used
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                statusCode: 409
+                error: Conflict
+                message: Achievement name already used
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/matches:
+    get:
+      tags: [Matches]
+      summary: List all matches played
+      operationId: getMatches
+      responses:
+        '200':
+          description: Array of matches
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Match'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  parameters:
+    IdPath:
+      name: id
+      in: path
+      required: true
+      description: Player id
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 2147483647
+
+  responses:
+    BadRequest:
+      description: Invalid id (not an integer, or out of range)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            statusCode: 400
+            code: FST_ERR_VALIDATION
+            error: Bad Request
+            message: params/id must be integer
+    ValidationError:
+      description: Invalid id or request body (invalid JSON, missing field, wrong type, out of range)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            statusCode: 400
+            code: FST_ERR_VALIDATION
+            error: Bad Request
+            message: body must have required property 'username'
+    PlayerNotFound:
+      description: No player with this id
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            statusCode: 404
+            error: Not Found
+            message: Player not found
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            statusCode: 500
+            error: Internal Server Error
+            message: Internal Server Error
+
+  schemas:
+    Error:
+      type: object
+      required: [statusCode, error, message]
+      properties:
+        statusCode: { type: integer, example: 404 }
+        code:       { type: string, description: Fastify error code (validation errors only), example: FST_ERR_VALIDATION }
+        error:      { type: string, description: HTTP status name, example: Not Found }
+        message:    { type: string, example: Player not found }
+
+    Player:
+      type: object
+      required: [id, username, level, xp, money, avatar_path]
+      properties:
+        id:          { type: integer, example: 1 }
+        username:    { type: string, maxLength: 32, example: Alice }
+        level:       { type: integer, example: 7 }
+        xp:          { type: integer, example: 1200 }
+        money:       { type: integer, minimum: 0, example: 1532 }
+        avatar_path: { type: string, maxLength: 255, example: /avatars/defaults/default1.png }
+
+    NewPlayer:
+      type: object
+      required: [username]
+      additionalProperties: false
+      properties:
+        username: { type: string, minLength: 1, maxLength: 32, example: Alice }
+
+    Friend:
+      type: object
+      description: The other player in a friendship or invite
+      required: [id, username, level, avatar_path, invite_status, sent_by_me]
+      properties:
+        id:            { type: integer, example: 2 }
+        username:      { type: string, maxLength: 32, example: Bob }
+        level:         { type: integer, example: 4 }
+        avatar_path:   { type: string, maxLength: 255, example: /avatars/defaults/default2.png }
+        invite_status: { type: string, enum: [pending, accepted], example: accepted }
+        sent_by_me:    { type: boolean, description: True if the requested player sent the invite, example: true }
+
+    ShopItem:
+      type: object
+      required: [id, name, type, price, asset_path]
+      properties:
+        id:         { type: integer, example: 1 }
+        name:       { type: string, maxLength: 64, example: Dash electrique }
+        type:       { type: string, enum: [SKIN, ANIMATION, EMOTE, BANNER], example: ANIMATION }
+        price:      { type: integer, minimum: 0, example: 500 }
+        asset_path: { type: string, maxLength: 255, example: /animation/dashelectrique }
+
+    NewShopItem:
+      type: object
+      required: [name, type, price, asset_path]
+      additionalProperties: false
+      properties:
+        name:       { type: string, minLength: 1, maxLength: 64, example: Dash electrique }
+        type:       { type: string, enum: [SKIN, ANIMATION, EMOTE, BANNER], example: ANIMATION }
+        price:      { type: integer, minimum: 0, maximum: 999999, example: 500 }
+        asset_path: { type: string, minLength: 1, maxLength: 255, example: /animation/dashelectrique }
+
+    InventoryItem:
+      description: A shop item owned by the player
+      allOf:
+        - $ref: '#/components/schemas/ShopItem'
+        - type: object
+          required: [acquired_at]
+          properties:
+            acquired_at: { type: string, format: date-time }
+
+    Achievement:
+      type: object
+      required: [id, name, unlock_condition]
+      properties:
+        id:               { type: integer, example: 1 }
+        name:             { type: string, maxLength: 64, example: First win }
+        unlock_condition: { type: string, maxLength: 255, example: Win your first match }
+
+    NewAchievement:
+      type: object
+      required: [name, unlock_condition]
+      additionalProperties: false
+      properties:
+        name:             { type: string, minLength: 1, maxLength: 64, example: First win }
+        unlock_condition: { type: string, minLength: 1, maxLength: 255, example: Win your first match }
+
+    UnlockAchievement:
+      type: object
+      required: [achievementID]
+      additionalProperties: false
+      properties:
+        achievementID: { type: integer, minimum: 1, maximum: 2147483647, example: 1 }
+
+    PlayerAchievement:
+      type: object
+      description: A row of players_achievements, returned when an achievement is unlocked
+      required: [player_id, achievement_id, acquired_at]
+      properties:
+        player_id:      { type: integer, example: 1 }
+        achievement_id: { type: integer, example: 1 }
+        acquired_at:    { type: string, format: date-time }
+
+    UnlockedAchievement:
+      description: An achievement the player has unlocked
+      allOf:
+        - $ref: '#/components/schemas/Achievement'
+        - type: object
+          required: [acquired_at]
+          properties:
+            acquired_at: { type: string, format: date-time }
+
+    Match:
+      type: object
+      required: [id, gamemode, status, started_at, finished_at]
+      properties:
+        id:          { type: integer, example: 1 }
+        gamemode:    { type: string, enum: [default], example: default }
+        status:      { type: string, enum: [finished, abandoned], example: finished }
+        started_at:  { type: string, format: date-time }
+        finished_at: { type: string, format: date-time }
+
+    PlayerMatch:
+      type: object
+      description: A match from one player's point of view
+      required: [match_id, is_winner, gamemode, status, started_at, finished_at]
+      properties:
+        match_id:    { type: integer, example: 1 }
+        is_winner:   { type: boolean, example: true }
+        gamemode:    { type: string, enum: [default], example: default }
+        status:      { type: string, enum: [finished, abandoned], example: finished }
+        started_at:  { type: string, format: date-time }
+        finished_at: { type: string, format: date-time }

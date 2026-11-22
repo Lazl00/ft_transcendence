@@ -1,0 +1,46 @@
+.home-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    font-family: 'Press Start 2P', monospace;
+}
+
+h2 {
+    font-size: 1.5rem;
+    margin: 0;
+    text-align: center;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    color: white;
+}
+
+.back-button {
+    width: auto;
+    height: auto;
+    font-family: inherit;    /* IMPORTANT : les <button> n'héritent pas la police par défaut */
+    font-size: 1rem;
+    font-weight: bold;
+    color: white;
+    background-color: #4f46e5;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    padding: 1rem 2rem;
+    margin-top: 1rem;
+    margin-bottom: 2rem;
+    border-radius: 12px;
+}
+
+.back-button:hover {
+    background-color: #46e679;
+}
+
+.back-button:active {
+    transform: scale(0.97);
+}
+
+.back-button:focus-visible {
+    outline: 2px solid white;
+    outline-offset: 2px;
+}

@@ -1,0 +1,97 @@
+.shop {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 0rem;
+    padding-bottom: 5rem;
+    gap: 3rem;
+    font-family: 'Press Start 2P', monospace;
+    width: 100%;
+    color: white;
+}
+
+.shop-title {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.costume-list {
+  width: min(calc(100% - 2rem), 960px);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.costume-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 1rem;
+  background-color: #39216b;
+  border-radius: 8px;
+}
+
+.costume-card__name {
+  margin-bottom: 0.75rem;
+}
+
+.costume-card__image-container {
+  display: grid;
+  grid-template-columns: minmax(32px, 20%) minmax(0, 1fr);
+  align-items: start;
+  gap: 1rem;
+  width: 100%;
+}
+
+.costume-card__image {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.costume-card__overlay {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0 0 0 2rem;
+}
+
+.costume-card__description {
+  font-size: 1rem;
+  font-weight: bold;
+  font-family: 'Arial', sans-serif;
+}
+
+.costume-card__price {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #ffb940;
+}
+
+.costume-card__buy-button {
+  align-self: flex-end;
+  background-color: #4f46e5;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.8rem;
+  border-radius: 4px;
+}
+
+.costume-card__buy-button:hover {
+  background-color: #46e679;
+}
+
+.costume-card__buy-button:active {
+  transform: scale(0.95);
+}
+
+@media (max-width: 640px) {
+  .costume-list {
+    grid-template-columns: 1fr;
+  }
+}

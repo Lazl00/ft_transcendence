@@ -1,0 +1,8 @@
+.color-grid {
+    display: grid;
+    gap: 0;
+}
+
+.color-cell {
+    aspect-ratio: 1;
+}

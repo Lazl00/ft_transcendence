@@ -67,3 +67,26 @@ CREATE TABLE players_achievements (
     acquired_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (player_id, achievement_id)
 );
+
+CREATE TABLE match_history (
+    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    gamemode VARCHAR(16) NOT NULL DEFAULT 'default'
+        CHECK (gamemode IN ('default')),
+    status VARCHAR(16) NOT NULL DEFAULT 'finished'
+        CHECK (status IN ('finished', 'abandoned')),
+    started_at TIMESTAMPTZ NOT NULL,
+    finished_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CHECK (finished_at >= started_at)
+);
+
+-- Who played in which match, and their result (many-to-many)
+-- The PK prevents adding the same player twice to a match
+CREATE TABLE player_history (
+    player_id INT NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    match_id  INT NOT NULL REFERENCES match_history(id) ON DELETE CASCADE,
+    is_winner BOOLEAN NOT NULL DEFAULT false,
+    PRIMARY KEY (player_id, match_id)
+);
+
+-- PK is sorted by player_id; this index makes "who played in match Y" fast
+CREATE INDEX player_history_match_id ON player_history (match_id);

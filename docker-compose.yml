@@ -1,8 +1,8 @@
-version: '3.8'
+# version: '3.8'
 
 services:
   nginx:
-    build: ./srcs/nginx
+    build: ./srcs/front-end
     container_name: nginx
     restart: unless-stopped
     ports:
@@ -23,6 +23,21 @@ services:
     volumes:
       - postgresql_data:/var/lib/postgresql/data
       - ./srcs/back-end/postgresql:/docker-entrypoint-initdb.d:ro
+
+  back-end:
+    build: ./srcs/back-end
+    restart: unless-stopped
+    container_name: back-end
+    environment:
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+    depends_on:
+      - database
+    ports:
+      - "3000:3000"
+    networks:
+      - internal-network
 
 volumes:
   postgresql_data:

@@ -31,5 +31,7 @@ export default function Game() {
         };
     }, []);
 
-    return <div ref={gameRef} className="game-container" />;
+    return (
+        <div ref={gameRef} className="game-container" />
+    );
 }

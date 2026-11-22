@@ -1,9 +1,11 @@
 main {
-    position: fixed;
+    /* position: fixed; */
     inset: 0;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    justify-content: flex-start;
     align-items: center;
+    gap: 1rem;
 }
 
 .game-container {

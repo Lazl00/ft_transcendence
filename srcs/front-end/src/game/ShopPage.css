@@ -58,13 +58,8 @@
   padding: 0 0 0 2rem;
 }
 
-.costume-card__description {
-  font-size: 1rem;
-  font-weight: bold;
-  font-family: 'Arial', sans-serif;
-}
-
 .costume-card__price {
+  align-self: flex-end;
   font-size: 1rem;
   font-weight: bold;
   color: #ffb940;

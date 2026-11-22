@@ -1,30 +1,57 @@
 import { useEffect, useState } from 'react';
 import './StatsPage.css';
 
-interface MatchStats {
+interface Player {
   id: number;
-  duration_seconds: number;
-  is_winner: boolean;
-  death_count: number;
+  username: string;
 }
 
-function isMatchStatsList(value: unknown): value is MatchStats[] {
-  return Array.isArray(value) && value.every((match) =>
-    typeof match === 'object'
-    && match !== null
-    && 'id' in match
-    && typeof match.id === 'number'
-    && 'duration_seconds' in match
-    && typeof match.duration_seconds === 'number'
-    && 'is_winner' in match
-    && typeof match.is_winner === 'boolean'
-    && 'death_count' in match
-    && typeof match.death_count === 'number'
+interface PlayerMatch {
+  match_id: number;
+  is_winner: boolean;
+  gamemode: 'default';
+  status: 'finished' | 'abandoned';
+  started_at: string;
+  finished_at: string;
+}
+
+function isPlayerList(value: unknown): value is Player[] {
+  return Array.isArray(value) && value.every((player) =>
+    typeof player === 'object'
+    && player !== null
+    && 'id' in player
+    && typeof player.id === 'number'
+    && 'username' in player
+    && typeof player.username === 'string'
   );
 }
 
+function isPlayerMatchList(value: unknown): value is PlayerMatch[] {
+  return Array.isArray(value) && value.every((match) =>
+    typeof match === 'object'
+    && match !== null
+    && 'match_id' in match
+    && typeof match.match_id === 'number'
+    && 'is_winner' in match
+    && typeof match.is_winner === 'boolean'
+    && 'gamemode' in match
+    && match.gamemode === 'default'
+    && 'status' in match
+    && (match.status === 'finished' || match.status === 'abandoned')
+    && 'started_at' in match
+    && typeof match.started_at === 'string'
+    && 'finished_at' in match
+    && typeof match.finished_at === 'string'
+  );
+}
+
+function formatDateTime(value: string): string {
+  return new Date(value).toLocaleString();
+}
+
 function StatsPage() {
-  const [matches, setMatches] = useState<MatchStats[]>([]);
+  const [playerName, setPlayerName] = useState<string | null>(null);
+  const [matches, setMatches] = useState<PlayerMatch[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,23 +60,41 @@ function StatsPage() {
 
     async function loadMatches() {
       try {
-        const response = await fetch('/api/me/matches', {
+        const playersResponse = await fetch('/api/players', {
           signal: controller.signal,
         });
-
-        if (!response.ok) {
-          throw new Error(`Could not load match stats (HTTP ${response.status}).`);
+        if (!playersResponse.ok) {
+          throw new Error(`Could not load players (HTTP ${playersResponse.status}).`);
         }
 
-        const result: unknown = await response.json();
-        if (!isMatchStatsList(result)) {
-          throw new Error('The server returned match stats in an unexpected format.');
+        const playersResult: unknown = await playersResponse.json();
+        if (!isPlayerList(playersResult)) {
+          throw new Error('The server returned players in an unexpected format.');
         }
 
-        setMatches(result);
+        const firstPlayer = [...playersResult].sort((a, b) => a.id - b.id)[0];
+        if (!firstPlayer) {
+          setMatches([]);
+          return;
+        }
+        setPlayerName(firstPlayer.username);
+
+        const matchesResponse = await fetch(`/api/players/${firstPlayer.id}/matches`, {
+          signal: controller.signal,
+        });
+        if (!matchesResponse.ok) {
+          throw new Error(`Could not load match history (HTTP ${matchesResponse.status}).`);
+        }
+
+        const matchesResult: unknown = await matchesResponse.json();
+        if (!isPlayerMatchList(matchesResult)) {
+          throw new Error('The server returned match history in an unexpected format.');
+        }
+
+        setMatches(matchesResult);
       } catch (loadError) {
         if (controller.signal.aborted) return;
-        setError(loadError instanceof Error ? loadError.message : 'Could not load match stats.');
+        setError(loadError instanceof Error ? loadError.message : 'Could not load match history.');
       } finally {
         if (!controller.signal.aborted) setIsLoading(false);
       }
@@ -63,28 +108,41 @@ function StatsPage() {
     <div className="stats">
       {isLoading && <p role="status">Loading stats...</p>}
       {error && <p role="alert">{error}</p>}
-      {!isLoading && !error && matches.length === 0 && <p>No games played yet.</p>}
+      {!isLoading && !error && matches.length === 0 && (
+        <p>{playerName ? `${playerName} has no match history yet.` : 'No players found.'}</p>
+      )}
       {!isLoading && !error && matches.length > 0 && (
-        <table className="stats-table">
-          <thead>
-            <tr>
-              <th>Game</th>
-              <th>Time</th>
-              <th>Win</th>
-              <th>Death</th>
-            </tr>
-          </thead>
-          <tbody>
-            {matches.map((match) => (
-              <tr key={match.id}>
-                <td>Game {match.id}</td>
-                <td>{match.duration_seconds}s</td>
-                <td>{match.is_winner ? 'Yes' : 'No'}</td>
-                <td>{match.death_count}</td>
+        <>
+          {playerName && <h2>{playerName}'s match history</h2>}
+          <table className="stats-table">
+            <thead>
+              <tr>
+                <th>Match</th>
+                <th>Game mode</th>
+                <th>Status</th>
+                <th>Started</th>
+                <th>Finished</th>
+                <th>Result</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {matches.map((match) => (
+                <tr key={match.match_id}>
+                  <td>Game {match.match_id}</td>
+                  <td>{match.gamemode}</td>
+                  <td>{match.status}</td>
+                  <td>{formatDateTime(match.started_at)}</td>
+                  <td>{formatDateTime(match.finished_at)}</td>
+                  <td>
+                    {match.status === 'abandoned'
+                      ? 'No result'
+                      : match.is_winner ? 'Won' : 'Lost'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
       )}
     </div>
   );

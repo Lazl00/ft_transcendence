@@ -16,7 +16,7 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y nginx && rm -rf /var/lib/apt/lists/*
 
-RUN rm -rf /etc/nginx/conf.d/default.conf
+RUN rm -rf /etc/nginx/conf.d/default.conf /etc/nginx/sites-enabled/default
 
 RUN mkdir -p /etc/nginx/ssl
 

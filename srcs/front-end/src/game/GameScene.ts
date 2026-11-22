@@ -1,5 +1,76 @@
-
 import Phaser from 'phaser';
+import { map_gen } from './map_gen/map_gen.js';
+import type { GameMap } from './ColorGrid.js';
+
+// Size (in px) of one matrix cell. Player is 32x48, so 1 cell = player height.
+const TILE = 48;
+
+// Solid cells of the matrix and their colour
+//  W = border walls / floor, R = roof, G = ground / platforms
+const SOLID_COLORS: Record<string, number> = {
+    W: 0x444466,
+    R: 0x3b3b5a,
+    G: 0x666688
+};
+
+type CellRect = { col: number; row: number; width: number; height: number };
+
+// Merges neighbouring cells that pass `test` into as few rectangles as possible.
+// (One big static body instead of many small ones avoids the player snagging on tile seams.)
+function mergeCells(map: GameMap, test: (cell: string) => boolean): CellRect[]
+{
+    const rows = map.length;
+    const cols = map[0].length;
+    const used: boolean[][] = Array.from({ length: rows }, () => Array(cols).fill(false));
+    const rects: CellRect[] = [];
+
+    for (let r = 0; r < rows; r++)
+    {
+        for (let c = 0; c < cols; c++)
+        {
+            if (used[r][c] || !test(map[r][c]))
+            {
+                continue;
+            }
+
+            let width = 1;
+            while (c + width < cols && !used[r][c + width] && test(map[r][c + width]))
+            {
+                width++;
+            }
+
+            let height = 1;
+            let canGrow = true;
+            while (canGrow && r + height < rows)
+            {
+                for (let k = 0; k < width; k++)
+                {
+                    if (used[r + height][c + k] || !test(map[r + height][c + k]))
+                    {
+                        canGrow = false;
+                        break;
+                    }
+                }
+                if (canGrow)
+                {
+                    height++;
+                }
+            }
+
+            for (let dr = 0; dr < height; dr++)
+            {
+                for (let dc = 0; dc < width; dc++)
+                {
+                    used[r + dr][c + dc] = true;
+                }
+            }
+
+            rects.push({ col: c, row: r, width, height });
+        }
+    }
+
+    return rects;
+}
 
 export default class GameScene extends Phaser.Scene
 {
@@ -37,7 +108,11 @@ export default class GameScene extends Phaser.Scene
 
     private player!: Phaser.GameObjects.Rectangle;
     private platforms!: Phaser.Physics.Arcade.StaticGroup;
-    private obstacles!: Phaser.Physics.Arcade.StaticGroup;
+    private hazards: Phaser.GameObjects.Zone[] = [];
+
+    // Spawn point (cell 'S' of the matrix)
+    private startX = 0;
+    private startY = 0;
 
     // AZERTY : ZQSD
     private keys!: {
@@ -60,43 +135,27 @@ export default class GameScene extends Phaser.Scene
 
     create()
     {
+        const map = map_gen();
+        const worldWidth = map[0].length * TILE;
+        const worldHeight = map.length * TILE;
+
         // World
-        this.physics.world.setBounds(0, 0, 3000, 500);
+        this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
 
         // Background
         this.cameras.main.setBackgroundColor('#171923');
 
-        // Platforms
+        // Level generated from the matrix (platforms, spikes, start, finish)
         this.platforms = this.physics.add.staticGroup();
-
-        // Main ground
-        const ground = this.add.rectangle(1500, 480, 3000, 40, 0x444466);
-        this.physics.add.existing(ground, true);
-        this.platforms.add(ground);
-
-        // Floating platforms
-        const platform1 = this.add.rectangle(250, 350, 180, 20, 0x666688);
-        this.physics.add.existing(platform1, true);
-        this.platforms.add(platform1);
-
-        const platform2 = this.add.rectangle(550, 250, 180, 20, 0x666688);
-        this.physics.add.existing(platform2, true);
-        this.platforms.add(platform2);
+        this.hazards = [];
+        this.buildLevel(map);
 
         // Player
-        this.player = this.add.rectangle(100, 100, 32, 48, 0x48a9ff);
+        this.player = this.add.rectangle(this.startX, this.startY, 32, 48, 0x48a9ff);
         this.physics.add.existing(this.player);
 
         const body = this.player.body as Phaser.Physics.Arcade.Body;
         body.setCollideWorldBounds(true);
-
-        // Obstacles
-        this.obstacles = this.physics.add.staticGroup();
-        this.generateObstacles();
-
-        // Finish Line
-        this.finishLine = this.add.zone(2850, 400, 40, 160);
-        this.physics.add.existing(this.finishLine, true);
 
         // Finish Line detection
         this.physics.add.overlap(
@@ -105,13 +164,20 @@ export default class GameScene extends Phaser.Scene
             () => this.finishGame()
         );
 
+        // Spikes
+        this.physics.add.overlap(
+            this.player,
+            this.hazards,
+            () => this.die()
+        );
+
         // Collisions
         this.physics.add.collider(this.player, this.platforms);
-        this.physics.add.collider(this.player, this.obstacles);
 
-        // Camera
-        this.cameras.main.setBounds(0, 0, 3000, 500);
-        this.cameras.main.startFollow(this.player, true, 0.08, 0);
+        // Camera (follows the player on both axes: the map is taller than the screen)
+        this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
+        this.cameras.main.centerOn(this.startX, this.startY);
+        this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
 
         // Timer UI
         this.timerText = this.add.text(
@@ -151,28 +217,127 @@ export default class GameScene extends Phaser.Scene
         );
     }
 
-    private generateObstacles()
+    // Builds the level from the matrix returned by map_gen()
+    // Legend: W wall, R roof, G ground, P spike, S start, F finish, E empty
+    // Row 0 of the matrix is the BOTTOM of the level (y goes up)
+    private buildLevel(map: GameMap)
     {
-        let x = 500;
+        const rows = map.length;
+        const cols = map[0].length;
 
-        while (x < 2900)
+        const cellLeft = (col: number) => col * TILE;
+        const cellTop = (row: number) => (rows - 1 - row) * TILE;
+
+        // Start + Finish
+        for (let r = 0; r < rows; r++)
         {
-            const width = Phaser.Math.Between(25, 60);
-            const height = Phaser.Math.Between(30, 70);
+            for (let c = 0; c < cols; c++)
+            {
+                const cell = map[r][c];
 
-            const obstacle = this.add.rectangle(
-                x,
-                460 - height / 2,
-                width,
-                height,
-                0xff5555
-            );
+                if (cell === 'S')
+                {
+                    this.startX = cellLeft(c) + TILE / 2;
+                    this.startY = cellTop(r) + TILE / 2 - 1;
+                }
+                else if (cell === 'F')
+                {
+                    // Zone covers the F cell and the one above it
+                    const x = cellLeft(c) + TILE / 2;
+                    const y = cellTop(r + 1) + TILE;
 
-            this.physics.add.existing(obstacle, true);
-            this.obstacles.add(obstacle);
+                    this.add.rectangle(x, y, TILE, TILE * 2, 0x55ff88, 0.3);
 
-            x += Phaser.Math.Between(250, 500);
+                    this.finishLine = this.add.zone(x, y, TILE, TILE * 2);
+                    this.physics.add.existing(this.finishLine, true);
+                }
+            }
         }
+
+        // Solid blocks (walls, roof, ground)
+        for (const type of Object.keys(SOLID_COLORS))
+        {
+            for (const rect of mergeCells(map, (cell) => cell === type))
+            {
+                const w = rect.width * TILE;
+                const h = rect.height * TILE;
+                const x = rect.col * TILE;
+                const y = (rows - rect.row - rect.height) * TILE;
+
+                const block = this.add.rectangle(x + w / 2, y + h / 2, w, h, SOLID_COLORS[type]);
+                this.physics.add.existing(block, true);
+                this.platforms.add(block);
+            }
+        }
+
+        // Spikes: drawing (2 teeth per cell)
+        const spikes = this.add.graphics();
+        spikes.fillStyle(0xff5555, 1);
+
+        for (let r = 0; r < rows; r++)
+        {
+            for (let c = 0; c < cols; c++)
+            {
+                if (map[r][c] !== 'P')
+                {
+                    continue;
+                }
+
+                const left = cellLeft(c);
+                const top = cellTop(r);
+                const half = TILE / 2;
+
+                for (let k = 0; k < 2; k++)
+                {
+                    spikes.fillTriangle(
+                        left + k * half, top + TILE,
+                        left + (k + 1) * half, top + TILE,
+                        left + k * half + half / 2, top + 4
+                    );
+                }
+            }
+        }
+
+        // Spikes: hitboxes (a bit smaller than the drawing so it stays fair)
+        for (const rect of mergeCells(map, (cell) => cell === 'P'))
+        {
+            const inset = 6;
+            const tipMargin = TILE * 0.35;
+
+            const w = rect.width * TILE - inset * 2;
+            const h = rect.height * TILE - tipMargin;
+            const x = rect.col * TILE + inset;
+            const y = (rows - rect.row - rect.height) * TILE + tipMargin;
+
+            const zone = this.add.zone(x + w / 2, y + h / 2, w, h);
+            this.physics.add.existing(zone, true);
+            this.hazards.push(zone);
+        }
+    }
+
+    // Touching a spike: back to the start (the timer keeps running)
+    private die()
+    {
+        if (this.hasFinished)
+        {
+            return;
+        }
+
+        const body = this.player.body as Phaser.Physics.Arcade.Body;
+
+        body.reset(this.startX, this.startY);
+        body.allowGravity = true;
+
+        this.isDashing = false;
+        this.dashTimer = 0;
+        this.coyoteTimer = 0;
+        this.jumpBufferTimer = 0;
+        this.canFastFall = false;
+        this.has_double_jump = true;
+        this.has_air_dash = true;
+
+        this.cameras.main.centerOn(this.startX, this.startY);
+        this.cameras.main.flash(150, 255, 85, 85);
     }
 
     update()

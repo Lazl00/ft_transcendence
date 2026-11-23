@@ -86,6 +86,27 @@ const createShopItem = {
     }
 };
 
+// Schema for a player buying a shop item
+// Player id in the URL, item id in the body, both within the Postgres INT range
+const buyItemSchema = {
+    params: {
+        type: 'object',
+        properties: {
+            id: {type: 'integer', minimum: 1, maximum: 2147483647},
+        },
+        required: ['id'],
+        additionalProperties: false,
+    },
+    body: {
+        type: 'object',
+        properties: {
+            itemID: {type: 'integer', minimum: 1, maximum: 2147483647},
+        },
+        required: ['itemID'],
+        additionalProperties: false,
+    }
+};
+
 // GET all players profiles
 app.get('/api/players', async (req, reply) => {
     const { rows } = await app.pg.query(
@@ -141,6 +162,38 @@ app.post<{ Body: { name: string, type: string, price: number, asset_path: string
     } catch (err: any) {
         if (err.code === '23505')
             return reply.code(409).send({ statusCode: 409, error: 'Conflict', message: 'Item name already used'});
+        throw err;
+    }
+});
+
+// POST player buy item from shop
+app.post<{ Params: { id: number }, Body: { itemID: number } }>(
+  '/api/players/:id/inventory', { schema: buyItemSchema }, async (req, reply) => {
+    try {
+        const item = await app.pg.transact(async (client) => {
+            const { rows: [item] } = await client.query(
+                'SELECT id, price FROM shop_items WHERE id = $1', [req.body.itemID]);
+            if (!item) throw { statusCode: 404, error: '',  message: 'Item not found' };
+
+            const upd = await client.query(
+                'UPDATE players SET money = money - $1 WHERE id = $2 RETURNING money',
+                [item.price, req.params.id]);
+            if (upd.rowCount === 0) throw { statusCode: 404, error: '', message: 'Player not found' };
+
+            await client.query(
+                'INSERT INTO players_items (player_id, item_id) VALUES ($1, $2)',
+                [req.params.id, item.id]);
+
+            return { ...item, money_left: upd.rows[0].money };
+        });
+        return reply.code(201).send(item);
+    } catch (err: any) {
+        if (err.statusCode === 404)
+            return reply.code(404).send({ statusCode: 404, error: 'Not Found', message: err.message });
+        if (err.code === '23514') // CHECK (money >= 0)
+            return reply.code(400).send({ statusCode: 400, error: 'Bad Request', message: 'Not enough money' });
+        if (err.code === '23505') // PK violation
+            return reply.code(409).send({ statusCode: 409, error: 'Conflict', message: 'Item already owned' });
         throw err;
     }
 });
@@ -202,7 +255,7 @@ app.post<{ Body: { name: string, unlock_condition: string } }>( '/api/achievemen
             return reply.code(409).send({ statusCode: 409, error: 'Conflict', message: 'Achievement name already used'});
         throw err;
     }
-});
+}); 
 
 // POST unlock player achievement
 app.post<{ Params: { playerID: number }, Body: { achievementID: number } }>('/api/players/:playerID/achievements', { schema: unlockPlayerAchievementSchema }, async (req, reply) => {

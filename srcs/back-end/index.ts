@@ -71,6 +71,18 @@ const unlockPlayerAchievementSchema = {
     }
 };
 
+// Schema to add a match to history
+const addMatchHistorySchema = {
+    body: {
+        type: 'object',
+        properties: {
+            gamemode: {type: 'string', enum: ['CLASSIC']},
+        },
+        required: ['gamemode'],
+        additionalProperties: false,
+    }
+};
+
 // Schema for shop item creation
 const createShopItem = {
     body: {
@@ -106,6 +118,27 @@ const buyItemSchema = {
         additionalProperties: false,
     }
 };
+
+// Schema for match info update
+const updateMatchSchema = {
+    params: {
+        type: 'object',
+        properties: {
+            id: {type: 'integer', minimum: 1, maximum: 2147483647},
+        },
+        required: ['id'],
+        additionalProperties: false,
+    },
+    body: {
+        type: 'object',
+        properties: {
+            finished_at: {type: 'string', format: 'date-time'},
+            status: {type: 'string', enum: ['FINISHED', 'ABANDONED']},
+        },
+        required: ['finished_at', 'status'],
+        additionalProperties: false,
+    }
+}
 
 // GET all players profiles
 app.get('/api/players', async (req, reply) => {
@@ -315,6 +348,43 @@ app.get<{ Params: { id: number } }>('/api/players/:id/matches', { schema: player
     );
 
     return (rows);
+});
+
+// POST add new match to history
+app.post<{ Body: { gamemode: string } }>( '/api/match_history' , { schema: addMatchHistorySchema }, async (req, reply) => {
+    try {
+        const { rows } = await app.pg.query(
+        `INSERT INTO match_history (gamemode) VALUES ($1)
+         RETURNING id, gamemode, status, started_at, finished_at`,
+         [req.body.gamemode]
+    );
+    return (reply.code(201).send(rows[0]));
+    } catch (err) {
+        req.log.error(err);
+        return reply.code(500).send({ statusCode: 500, error: 'Internal Server Error', message: 'Could not create match' });
+    }
+});
+
+// PATCH update match info
+app.patch<{Params: { id: number}, Body: {finished_at: string, status: 'FINISHED' | 'ABANDONED'}}>('/api/match_history/:id', { schema: updateMatchSchema }, async (req, reply) => {
+    try {
+        const { rows } = await app.pg.query(
+            `UPDATE match_history SET finished_at = $1, status = $2 WHERE id = $3
+             RETURNING id, gamemode, status, started_at, finished_at`,
+            [req.body.finished_at, req.body.status, req.params.id]
+        );  
+        if (rows.length === 0) {
+            return (reply.code(404).send({ statusCode: 404, error: 'Not Found', message: 'Match not found' }));
+        }
+        return (rows[0]);
+    } catch (err: any) {
+        // 23514 = check_violation (finished_at < started_at)
+        if (err.code === '23514') {
+            return (reply.code(400).send({ statusCode: 400, error: 'Bad Request', message: 'finished_at must be after started_at' }));
+        }
+        req.log.error(err);
+        return (reply.code(500).send({ statusCode: 500, error: 'Internal Server Error', message: 'Could not update match' }));
+    }
 });
 
 // Start the server once all routes are declared

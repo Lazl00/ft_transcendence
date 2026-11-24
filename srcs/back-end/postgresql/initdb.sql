@@ -68,14 +68,15 @@ CREATE TABLE players_achievements (
     PRIMARY KEY (player_id, achievement_id)
 );
 
+-- Create the match history table
 CREATE TABLE match_history (
     id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    gamemode VARCHAR(16) NOT NULL DEFAULT 'default'
-        CHECK (gamemode IN ('default')),
-    status VARCHAR(16) NOT NULL DEFAULT 'finished'
-        CHECK (status IN ('finished', 'abandoned')),
-    started_at TIMESTAMPTZ NOT NULL,
-    finished_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    gamemode VARCHAR(16) NOT NULL DEFAULT 'CLASSIC'
+        CHECK (gamemode IN ('CLASSIC')),
+    status VARCHAR(16) NOT NULL DEFAULT 'STARTED'
+        CHECK (status IN ('STARTED', 'FINISHED', 'ABANDONED')),
+    started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    finished_at TIMESTAMPTZ,
     CHECK (finished_at >= started_at)
 );
 

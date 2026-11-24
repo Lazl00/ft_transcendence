@@ -35,7 +35,7 @@ function isPlayerMatchList(value: unknown): value is PlayerMatch[] {
     && 'is_winner' in match
     && typeof match.is_winner === 'boolean'
     && 'gamemode' in match
-    && match.gamemode === 'default'
+    && match.gamemode === 'default' // Only 'default' gamemode is supported, Will need to update this if more gamemodes are added in the future.
     && 'status' in match
     && (match.status === 'finished' || match.status === 'abandoned')
     && 'started_at' in match

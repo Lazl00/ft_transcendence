@@ -113,6 +113,68 @@ paths:
           $ref: '#/components/responses/PlayerNotFound'
         '500':
           $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Players, Shop]
+      summary: Buy a shop item for a player
+      description: >
+        Takes the item's price from the player's money and adds the item to their inventory.
+        Runs in a single transaction: nothing changes if any step fails.
+      operationId: buyItem
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuyItem'
+      responses:
+        '201':
+          description: The bought item and the player's remaining money
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Purchase'
+        '400':
+          description: Invalid id or body, or the player does not have enough money
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                notEnoughMoney:
+                  value:
+                    statusCode: 400
+                    error: Bad Request
+                    message: Not enough money
+                validation:
+                  value:
+                    statusCode: 400
+                    code: FST_ERR_VALIDATION
+                    error: Bad Request
+                    message: body must have required property 'itemID'
+        '404':
+          description: The player or the item does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                statusCode: 404
+                error: Not Found
+                message: Item not found
+        '409':
+          description: The player already owns this item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                statusCode: 409
+                error: Conflict
+                message: Item already owned
+        '500':
+          $ref: '#/components/responses/InternalError'
 
   /api/players/{id}/friends:
     get:
@@ -344,6 +406,82 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /api/match_history:
+    post:
+      tags: [Matches]
+      summary: Start a new match
+      description: The match is created with status STARTED, started_at set to now and finished_at null.
+      operationId: createMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewMatch'
+      responses:
+        '201':
+          description: The created match
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/match_history/{id}:
+    patch:
+      tags: [Matches]
+      summary: Close a match
+      description: Sets the match's finished_at and its final status.
+      operationId: updateMatch
+      parameters:
+        - $ref: '#/components/parameters/MatchIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMatch'
+      responses:
+        '200':
+          description: The updated match
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+        '400':
+          description: Invalid id or body, or finished_at is before started_at
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                beforeStart:
+                  value:
+                    statusCode: 400
+                    error: Bad Request
+                    message: finished_at must be after started_at
+                validation:
+                  value:
+                    statusCode: 400
+                    code: FST_ERR_VALIDATION
+                    error: Bad Request
+                    message: body/status must be equal to one of the allowed values
+        '404':
+          description: No match with this id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                statusCode: 404
+                error: Not Found
+                message: Match not found
+        '500':
+          $ref: '#/components/responses/InternalError'
+
 components:
   parameters:
     IdPath:
@@ -351,6 +489,15 @@ components:
       in: path
       required: true
       description: Player id
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 2147483647
+    MatchIdPath:
+      name: id
+      in: path
+      required: true
+      description: Match id
       schema:
         type: integer
         minimum: 1
@@ -460,6 +607,21 @@ components:
         price:      { type: integer, minimum: 0, maximum: 999999, example: 500 }
         asset_path: { type: string, minLength: 1, maxLength: 255, example: /animation/dashelectrique }
 
+    BuyItem:
+      type: object
+      required: [itemID]
+      additionalProperties: false
+      properties:
+        itemID: { type: integer, minimum: 1, maximum: 2147483647, example: 1 }
+
+    Purchase:
+      type: object
+      required: [id, price, money_left]
+      properties:
+        id:         { type: integer, description: The bought item's id, example: 1 }
+        price:      { type: integer, minimum: 0, example: 500 }
+        money_left: { type: integer, minimum: 0, description: The player's money after the purchase, example: 1032 }
+
     InventoryItem:
       description: A shop item owned by the player
       allOf:
@@ -515,10 +677,25 @@ components:
       required: [id, gamemode, status, started_at, finished_at]
       properties:
         id:          { type: integer, example: 1 }
-        gamemode:    { type: string, enum: [default], example: default }
-        status:      { type: string, enum: [finished, abandoned], example: finished }
+        gamemode:    { type: string, enum: [CLASSIC], example: CLASSIC }
+        status:      { type: string, enum: [STARTED, FINISHED, ABANDONED], example: FINISHED }
         started_at:  { type: string, format: date-time }
-        finished_at: { type: string, format: date-time }
+        finished_at: { type: [string, 'null'], format: date-time, description: Null while the match is STARTED }
+
+    NewMatch:
+      type: object
+      required: [gamemode]
+      additionalProperties: false
+      properties:
+        gamemode: { type: string, enum: [CLASSIC], example: CLASSIC }
+
+    UpdateMatch:
+      type: object
+      required: [finished_at, status]
+      additionalProperties: false
+      properties:
+        finished_at: { type: string, format: date-time, example: '2026-11-24T18:30:00Z' }
+        status:      { type: string, enum: [FINISHED, ABANDONED], example: FINISHED }
 
     PlayerMatch:
       type: object
@@ -527,7 +704,7 @@ components:
       properties:
         match_id:    { type: integer, example: 1 }
         is_winner:   { type: boolean, example: true }
-        gamemode:    { type: string, enum: [default], example: default }
-        status:      { type: string, enum: [finished, abandoned], example: finished }
+        gamemode:    { type: string, enum: [CLASSIC], example: CLASSIC }
+        status:      { type: string, enum: [STARTED, FINISHED, ABANDONED], example: FINISHED }
         started_at:  { type: string, format: date-time }
-        finished_at: { type: string, format: date-time }
+        finished_at: { type: [string, 'null'], format: date-time, description: Null while the match is STARTED }

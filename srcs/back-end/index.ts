@@ -71,6 +71,18 @@ const unlockPlayerAchievementSchema = {
     }
 };
 
+// Schema to add a match to history
+const addMatchHistorySchema = {
+    body: {
+        type: 'object',
+        properties: {
+            gamemode: {type: 'string', enum: ['CLASSIC']},
+        },
+        required: ['gamemode'],
+        additionalProperties: false,
+    }
+};
+
 // Schema for shop item creation
 const createShopItem = {
     body: {
@@ -85,6 +97,48 @@ const createShopItem = {
         additionalProperties: false,
     }
 };
+
+// Schema for a player buying a shop item
+// Player id in the URL, item id in the body, both within the Postgres INT range
+const buyItemSchema = {
+    params: {
+        type: 'object',
+        properties: {
+            id: {type: 'integer', minimum: 1, maximum: 2147483647},
+        },
+        required: ['id'],
+        additionalProperties: false,
+    },
+    body: {
+        type: 'object',
+        properties: {
+            itemID: {type: 'integer', minimum: 1, maximum: 2147483647},
+        },
+        required: ['itemID'],
+        additionalProperties: false,
+    }
+};
+
+// Schema for match info update
+const updateMatchSchema = {
+    params: {
+        type: 'object',
+        properties: {
+            id: {type: 'integer', minimum: 1, maximum: 2147483647},
+        },
+        required: ['id'],
+        additionalProperties: false,
+    },
+    body: {
+        type: 'object',
+        properties: {
+            finished_at: {type: 'string', format: 'date-time'},
+            status: {type: 'string', enum: ['FINISHED', 'ABANDONED']},
+        },
+        required: ['finished_at', 'status'],
+        additionalProperties: false,
+    }
+}
 
 // GET all players profiles
 app.get('/api/players', async (req, reply) => {
@@ -141,6 +195,38 @@ app.post<{ Body: { name: string, type: string, price: number, asset_path: string
     } catch (err: any) {
         if (err.code === '23505')
             return reply.code(409).send({ statusCode: 409, error: 'Conflict', message: 'Item name already used'});
+        throw err;
+    }
+});
+
+// POST player buy item from shop
+app.post<{ Params: { id: number }, Body: { itemID: number } }>(
+  '/api/players/:id/inventory', { schema: buyItemSchema }, async (req, reply) => {
+    try {
+        const item = await app.pg.transact(async (client) => {
+            const { rows: [item] } = await client.query(
+                'SELECT id, price FROM shop_items WHERE id = $1', [req.body.itemID]);
+            if (!item) throw { statusCode: 404, error: '',  message: 'Item not found' };
+
+            const upd = await client.query(
+                'UPDATE players SET money = money - $1 WHERE id = $2 RETURNING money',
+                [item.price, req.params.id]);
+            if (upd.rowCount === 0) throw { statusCode: 404, error: '', message: 'Player not found' };
+
+            await client.query(
+                'INSERT INTO players_items (player_id, item_id) VALUES ($1, $2)',
+                [req.params.id, item.id]);
+
+            return { ...item, money_left: upd.rows[0].money };
+        });
+        return reply.code(201).send(item);
+    } catch (err: any) {
+        if (err.statusCode === 404)
+            return reply.code(404).send({ statusCode: 404, error: 'Not Found', message: err.message });
+        if (err.code === '23514') // CHECK (money >= 0)
+            return reply.code(400).send({ statusCode: 400, error: 'Bad Request', message: 'Not enough money' });
+        if (err.code === '23505') // PK violation
+            return reply.code(409).send({ statusCode: 409, error: 'Conflict', message: 'Item already owned' });
         throw err;
     }
 });
@@ -202,7 +288,7 @@ app.post<{ Body: { name: string, unlock_condition: string } }>( '/api/achievemen
             return reply.code(409).send({ statusCode: 409, error: 'Conflict', message: 'Achievement name already used'});
         throw err;
     }
-});
+}); 
 
 // POST unlock player achievement
 app.post<{ Params: { playerID: number }, Body: { achievementID: number } }>('/api/players/:playerID/achievements', { schema: unlockPlayerAchievementSchema }, async (req, reply) => {
@@ -262,6 +348,43 @@ app.get<{ Params: { id: number } }>('/api/players/:id/matches', { schema: player
     );
 
     return (rows);
+});
+
+// POST add new match to history
+app.post<{ Body: { gamemode: string } }>( '/api/match_history' , { schema: addMatchHistorySchema }, async (req, reply) => {
+    try {
+        const { rows } = await app.pg.query(
+        `INSERT INTO match_history (gamemode) VALUES ($1)
+         RETURNING id, gamemode, status, started_at, finished_at`,
+         [req.body.gamemode]
+    );
+    return (reply.code(201).send(rows[0]));
+    } catch (err) {
+        req.log.error(err);
+        return reply.code(500).send({ statusCode: 500, error: 'Internal Server Error', message: 'Could not create match' });
+    }
+});
+
+// PATCH update match info
+app.patch<{Params: { id: number}, Body: {finished_at: string, status: 'FINISHED' | 'ABANDONED'}}>('/api/match_history/:id', { schema: updateMatchSchema }, async (req, reply) => {
+    try {
+        const { rows } = await app.pg.query(
+            `UPDATE match_history SET finished_at = $1, status = $2 WHERE id = $3
+             RETURNING id, gamemode, status, started_at, finished_at`,
+            [req.body.finished_at, req.body.status, req.params.id]
+        );  
+        if (rows.length === 0) {
+            return (reply.code(404).send({ statusCode: 404, error: 'Not Found', message: 'Match not found' }));
+        }
+        return (rows[0]);
+    } catch (err: any) {
+        // 23514 = check_violation (finished_at < started_at)
+        if (err.code === '23514') {
+            return (reply.code(400).send({ statusCode: 400, error: 'Bad Request', message: 'finished_at must be after started_at' }));
+        }
+        req.log.error(err);
+        return (reply.code(500).send({ statusCode: 500, error: 'Internal Server Error', message: 'Could not update match' }));
+    }
 });
 
 // Start the server once all routes are declared

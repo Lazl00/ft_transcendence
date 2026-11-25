@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { tileTextures } from './tileTextures';
+import { getVariant, pickTexture } from './tileVariants';
 import { map_gen } from './map_gen/map_gen.js';
 import type { GameMap } from './ColorGrid.js';
 
@@ -137,6 +139,14 @@ export default class GameScene extends Phaser.Scene
         this.onResultSaved = onResultSaved;
     }
 
+    preload()
+    {
+        for (const [key, url] of Object.entries(tileTextures))
+        {
+            this.load.image(key, url);
+        }
+    }
+
     create()
     {
         const map = map_gen();
@@ -161,6 +171,10 @@ export default class GameScene extends Phaser.Scene
         const body = this.player.body as Phaser.Physics.Arcade.Body;
         body.setCollideWorldBounds(true);
 
+        
+        // Collisions
+        this.physics.add.collider(this.player, this.platforms);
+
         // Finish Line detection
         this.physics.add.overlap(
             this.player,
@@ -174,9 +188,6 @@ export default class GameScene extends Phaser.Scene
             this.hazards,
             () => this.die()
         );
-
-        // Collisions
-        this.physics.add.collider(this.player, this.platforms);
 
         // Camera (follows the player on both axes: the map is taller than the screen)
         this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
@@ -257,8 +268,35 @@ export default class GameScene extends Phaser.Scene
                 }
             }
         }
+        
+        // Solid blocks: visuel, un sprite par cellule selon ses voisins
+        for (let r = 0; r < rows; r++)
+        {
+            for (let c = 0; c < cols; c++)
+            {
+                const cell = map[r][c];
 
-        // Solid blocks (walls, roof, ground)
+                if (!(cell in SOLID_COLORS))
+                {
+                    continue;
+                }
+
+                const x = cellLeft(c) + TILE / 2;
+                const y = cellTop(r) + TILE / 2;
+                const key = pickTexture((k) => this.textures.exists(k), cell, getVariant(map, r, c));
+
+                if (key)
+                {
+                    this.add.image(x, y, key).setDisplaySize(TILE, TILE);
+                }
+                else
+                {
+                    this.add.rectangle(x, y, TILE, TILE, SOLID_COLORS[cell]);
+                }
+            }
+        }
+
+        // Solid blocks: physique (rectangles fusionnés, invisibles)
         for (const type of Object.keys(SOLID_COLORS))
         {
             for (const rect of mergeCells(map, (cell) => cell === type))
@@ -268,7 +306,7 @@ export default class GameScene extends Phaser.Scene
                 const x = rect.col * TILE;
                 const y = (rows - rect.row - rect.height) * TILE;
 
-                const block = this.add.rectangle(x + w / 2, y + h / 2, w, h, SOLID_COLORS[type]);
+                const block = this.add.rectangle(x + w / 2, y + h / 2, w, h).setVisible(false);
                 this.physics.add.existing(block, true);
                 this.platforms.add(block);
             }

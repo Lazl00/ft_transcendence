@@ -1,4 +1,5 @@
 import './ColorGrid.css';
+import { tileTextures } from './tileTextures';
 import { map_gen } from "./map_gen/map_gen.js";
 
 // Defining the types for the tile codes and the game map
@@ -53,7 +54,10 @@ function ColorGrid({ map }: { map: GameMap }) {
                 <div
                     key={`${rowIndex}-${columnIndex}`}
                     className="color-cell"
-                    style={{ backgroundColor: tileColors[tile] }}
+                    style={{
+                        backgroundColor: tileColors[tile],
+                        backgroundImage: tileTextures[tile] ? `url(${tileTextures[tile]})` : undefined,
+                    }}
                 />
             )))}
         </div>

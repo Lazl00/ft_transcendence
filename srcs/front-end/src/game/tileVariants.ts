@@ -45,13 +45,16 @@ export function getVariant(map: GameMap, r: number, c: number): string
     if (!left) return 'left';
     if (!right) return 'right';
 
-    // Entouré des 4 côtés : on regarde les diagonales (coin intérieur)
-    if (!solidAt(map, r + 1, c - 1)) return 'inner_top_left';
-    if (!solidAt(map, r + 1, c + 1)) return 'inner_top_right';
-    if (!solidAt(map, r - 1, c - 1)) return 'inner_bottom_left';
-    if (!solidAt(map, r - 1, c + 1)) return 'inner_bottom_right';
+    // Entouré des 4 côtés : on liste tous les coins intérieurs (diagonales vides)
+    const corners: string[] = [];
+    if (!solidAt(map, r + 1, c - 1)) corners.push('tl');
+    if (!solidAt(map, r + 1, c + 1)) corners.push('tr');
+    if (!solidAt(map, r - 1, c - 1)) corners.push('bl');
+    if (!solidAt(map, r - 1, c + 1)) corners.push('br');
 
-    return 'center';
+    if (corners.length === 0) return 'center';
+
+    return 'inner_' + corners.join('_');
 }
 
 // Donne la première texture qui existe : G_top_left -> G_center -> G

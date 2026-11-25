@@ -14,6 +14,7 @@ interface HomeScreenProps {
 interface PlayerBalance {
   id: number;
   money: number;
+  xp: number;
 }
 
 function isPlayerBalance(value: unknown): value is PlayerBalance {
@@ -28,7 +29,10 @@ function isPlayerBalance(value: unknown): value is PlayerBalance {
 function MainMenuPage({ onSelectView, screen, player, onLogout, balanceRefreshKey }: HomeScreenProps) {
   const [coinCount, setCoinCount] = useState<number | null>(null);
   const [isLoadingCoins, setIsLoadingCoins] = useState(true);
+  const [experience, setExperience] = useState<number | null>(null);
+  const [isLoadingExperience, setIsLoadingExperience] = useState(true);
   const [coinError, setCoinError] = useState<string | null>(null);
+  const [experienceError, setExperienceError] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -49,11 +53,16 @@ function MainMenuPage({ onSelectView, screen, player, onLogout, balanceRefreshKe
 
         setCoinError(null);
         setCoinCount(result.money);
+        setExperienceError(null);
+        setExperience(result.xp);
       } catch (loadError) {
         if (controller.signal.aborted) return;
         setCoinError(loadError instanceof Error ? loadError.message : 'Could not load player balance.');
       } finally {
-        if (!controller.signal.aborted) setIsLoadingCoins(false);
+        if (!controller.signal.aborted) {
+          setIsLoadingCoins(false);
+          setIsLoadingExperience(false);
+        }
       }
     }
 
@@ -79,6 +88,10 @@ function MainMenuPage({ onSelectView, screen, player, onLogout, balanceRefreshKe
             <span>{player.username}</span>
             <button className="logout-button" onClick={onLogout}>Log out</button>
           </div>
+          <img className="player-avatar" src="/imgs/skins/skin_base-32x.png" alt="Player avatar" />
+          <p className="experience" aria-label={`${player.username}'s experience`}>
+            {isLoadingExperience ? '...' : experience === null ? '—' : experience}XP 
+          </p>
           <p className="coin-count" aria-label={`${player.username}'s coins`}>
             {isLoadingCoins ? '...' : coinCount === null ? '—' : coinCount}
           </p>
@@ -87,6 +100,7 @@ function MainMenuPage({ onSelectView, screen, player, onLogout, balanceRefreshKe
         </div>
       </div>
       {coinError && <p role="alert">{coinError}</p>}
+      {experienceError && <p role="alert">{experienceError}</p>}
       {screen === 'menu' && (
         <button className="menu-button play-button" onClick={() => onSelectView('new-game')}><i className="fa-solid fa-play"></i></button>
       )}

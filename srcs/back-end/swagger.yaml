@@ -292,6 +292,32 @@ paths:
           $ref: '#/components/responses/PlayerNotFound'
         '500':
           $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Players, Matches]
+      summary: Record a completed match for a player
+      description: Creates a finished match and its player result atomically. The match start time is derived from duration_ms.
+      operationId: recordPlayerMatch
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordPlayerMatch'
+      responses:
+        '201':
+          description: The recorded player match
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerMatch'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/PlayerNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
 
   /api/shop:
     get:
@@ -688,6 +714,15 @@ components:
       additionalProperties: false
       properties:
         gamemode: { type: string, enum: [CLASSIC], example: CLASSIC }
+
+    RecordPlayerMatch:
+      type: object
+      required: [gamemode, duration_ms, is_winner]
+      additionalProperties: false
+      properties:
+        gamemode:    { type: string, enum: [CLASSIC], example: CLASSIC }
+        duration_ms: { type: integer, minimum: 0, maximum: 2147483647, example: 42000 }
+        is_winner:   { type: boolean, example: true }
 
     UpdateMatch:
       type: object

@@ -105,6 +105,8 @@ export default class GameScene extends Phaser.Scene
     // Finish Line
     private finishLine!: Phaser.GameObjects.Zone;
     private hasFinished = false;
+    private readonly playerId: number;
+    private readonly onResultSaved: () => void;
 
     private player!: Phaser.GameObjects.Rectangle;
     private platforms!: Phaser.Physics.Arcade.StaticGroup;
@@ -128,9 +130,11 @@ export default class GameScene extends Phaser.Scene
     // Touche de dash : SHIFT
     private dashKey!: Phaser.Input.Keyboard.Key;
 
-    constructor()
+    constructor(playerId: number, onResultSaved: () => void)
     {
         super('GameScene');
+        this.playerId = playerId;
+        this.onResultSaved = onResultSaved;
     }
 
     create()
@@ -574,5 +578,52 @@ export default class GameScene extends Phaser.Scene
         .setOrigin(0.5)
         .setScrollFactor(0)
         .setDepth(1001);
+
+        void this.recordMatchResult();
+    }
+
+    private async recordMatchResult()
+    {
+        const statusText = this.add.text(
+            this.cameras.main.width / 2,
+            155,
+            'Saving result...',
+            {
+                fontSize: '20px',
+                color: '#ffffff',
+                fontStyle: 'bold',
+                stroke: '#171923',
+                strokeThickness: 4
+            }
+        )
+        .setOrigin(0.5)
+        .setScrollFactor(0)
+        .setDepth(1001);
+
+        try
+        {
+            const response = await fetch(`/api/players/${this.playerId}/matches`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    gamemode: 'CLASSIC',
+                    duration_ms: Math.round(this.elapsedTime),
+                    is_winner: true
+                })
+            });
+            if (!response.ok)
+            {
+                throw new Error(`Request failed (HTTP ${response.status}).`);
+            }
+            statusText.setText('Result saved');
+            this.onResultSaved();
+        }
+        catch (error)
+        {
+            console.error('Could not save the completed match result', error);
+            const detail = error instanceof Error ? error.message : 'Unknown error';
+            statusText.setText(`Could not save result: ${detail}`);
+            statusText.setColor('#ff8888');
+        }
     }
 }

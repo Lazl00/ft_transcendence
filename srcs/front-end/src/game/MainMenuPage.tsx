@@ -7,6 +7,7 @@ interface HomeScreenProps {
   onSelectView: (view: Screen) => void;
   screen: Screen;
   player: PlayerSession;
+  balanceRefreshKey: number;
   onLogout: () => void;
 }
 
@@ -24,7 +25,7 @@ function isPlayerBalance(value: unknown): value is PlayerBalance {
     && typeof value.money === 'number';
 }
 
-function MainMenuPage({ onSelectView, screen, player, onLogout }: HomeScreenProps) {
+function MainMenuPage({ onSelectView, screen, player, onLogout, balanceRefreshKey }: HomeScreenProps) {
   const [coinCount, setCoinCount] = useState<number | null>(null);
   const [isLoadingCoins, setIsLoadingCoins] = useState(true);
   const [coinError, setCoinError] = useState<string | null>(null);
@@ -46,6 +47,7 @@ function MainMenuPage({ onSelectView, screen, player, onLogout }: HomeScreenProp
           throw new Error('The server returned an unexpected player profile.');
         }
 
+        setCoinError(null);
         setCoinCount(result.money);
       } catch (loadError) {
         if (controller.signal.aborted) return;
@@ -57,7 +59,7 @@ function MainMenuPage({ onSelectView, screen, player, onLogout }: HomeScreenProp
 
     void loadCoinCount();
     return () => controller.abort();
-  }, [player.id]);
+  }, [player.id, balanceRefreshKey]);
 
   return (
     <div className="home">

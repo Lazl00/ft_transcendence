@@ -140,6 +140,21 @@ const updateMatchSchema = {
     }
 }
 
+// Schema for recording a completed player's match result
+const recordPlayerMatchSchema = {
+    params: playerParamsSchema.params,
+    body: {
+        type: 'object',
+        properties: {
+            gamemode: {type: 'string', enum: ['CLASSIC']},
+            duration_ms: {type: 'integer', minimum: 0, maximum: 2147483647},
+            is_winner: {type: 'boolean'},
+        },
+        required: ['gamemode', 'duration_ms', 'is_winner'],
+        additionalProperties: false,
+    },
+};
+
 // GET all players profiles
 app.get('/api/players', async (req, reply) => {
     const { rows } = await app.pg.query(
@@ -348,6 +363,47 @@ app.get<{ Params: { id: number } }>('/api/players/:id/matches', { schema: player
     );
 
     return (rows);
+});
+
+// POST a completed match and its player's result in one transaction
+app.post<{
+    Params: { id: number },
+    Body: { gamemode: 'CLASSIC', duration_ms: number, is_winner: boolean }
+}>('/api/players/:id/matches', { schema: recordPlayerMatchSchema }, async (req, reply) => {
+    const result = await app.pg.transact(async (client) => {
+        const player = await client.query('SELECT id FROM players WHERE id = $1', [req.params.id]);
+        if (player.rows.length === 0) return null;
+
+        const { rows: [match] } = await client.query(
+            `INSERT INTO match_history (gamemode, status, started_at, finished_at)
+             VALUES ($1, 'FINISHED', now() - ($2::double precision * interval '1 millisecond'), now())
+             RETURNING id, gamemode, status, started_at, finished_at`,
+            [req.body.gamemode, req.body.duration_ms]
+        );
+        await client.query(
+            'INSERT INTO player_history (player_id, match_id, is_winner) VALUES ($1, $2, $3)',
+            [req.params.id, match.id, req.body.is_winner]
+        );
+        await client.query(
+            `UPDATE players SET xp = xp + $1, level = level + (xp + $1) / 1000, money = money + $2
+             WHERE id = $3`,
+            [req.body.is_winner ? 100 : 50, req.body.is_winner ? 250 : 0, req.params.id]
+        );
+
+        return {
+            match_id: match.id,
+            is_winner: req.body.is_winner,
+            gamemode: match.gamemode,
+            status: match.status,
+            started_at: match.started_at,
+            finished_at: match.finished_at,
+        };
+    });
+
+    if (!result) {
+        return reply.code(404).send({ statusCode: 404, error: 'Not Found', message: 'Player not found' });
+    }
+    return reply.code(201).send(result);
 });
 
 // POST add new match to history

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import Game from './Game';
 import './HomePage.css';
 //import ColorGrid, { placeholderMap } from './ColorGrid';
@@ -16,6 +16,9 @@ interface HomePageProps {
 
 function HomePage({ player, onLogout }: HomePageProps) {
     const [currentView, setCurrentView] = useState<Screen>('menu');
+    const [balanceRefreshKey, setCounter] = useState(0); // Dummy state to force re-render when needed
+
+    const onResultSaved = useCallback(() => setCounter((prev) => prev + 1), []); // Function to force re-render
 
     // Function to render the appropriate screen based on the current state
     const renderScreen = () => {
@@ -23,36 +26,36 @@ function HomePage({ player, onLogout }: HomePageProps) {
         switch (currentView) {
             case 'menu':
                 return <>
-                    <MainMenuPage onSelectView={setCurrentView} screen={currentView} player={player} onLogout={onLogout} />
+                    <MainMenuPage onSelectView={setCurrentView} screen={currentView} player={player} onLogout={onLogout} balanceRefreshKey={balanceRefreshKey} />
                 </>;
             case 'new-game':
                 return <>
-                    <MainMenuPage onSelectView={setCurrentView} screen={currentView} player={player} onLogout={onLogout} />
+                    <MainMenuPage onSelectView={setCurrentView} screen={currentView} player={player} onLogout={onLogout} balanceRefreshKey={balanceRefreshKey} />
                     {/* <ColorGrid map={placeholderMap} /> */}
-					<Game />
+					<Game playerId={player.id} onResultSaved={onResultSaved} />
                     <button className="back-button" onClick={() => setCurrentView('menu')}>Back</button>;
                 </>;
             case 'replay':
                 return <>
-                    <MainMenuPage onSelectView={setCurrentView} screen={currentView} player={player} onLogout={onLogout} />
+                    <MainMenuPage onSelectView={setCurrentView} screen={currentView} player={player} onLogout={onLogout} balanceRefreshKey={balanceRefreshKey} />
                     <h2>Replay</h2>
                     <button className="back-button" onClick={() => setCurrentView('menu')}>Back</button>
                 </>;
             case 'stats':
                 return <>
-                    <MainMenuPage onSelectView={setCurrentView} screen={currentView} player={player} onLogout={onLogout} />
+                    <MainMenuPage onSelectView={setCurrentView} screen={currentView} player={player} onLogout={onLogout} balanceRefreshKey={balanceRefreshKey} />
                     <h2>Stats Screen</h2>
                     <StatsPage player={player} />
                     <button className="back-button" onClick={() => setCurrentView('menu')}>Back</button>
                 </>;
             case 'shop':
                 return <>
-                    <MainMenuPage onSelectView={setCurrentView} screen={currentView} player={player} onLogout={onLogout} />
+                    <MainMenuPage onSelectView={setCurrentView} screen={currentView} player={player} onLogout={onLogout} balanceRefreshKey={balanceRefreshKey} />
                     <ShopPage />
                     <button className="back-button" onClick={() => setCurrentView('menu')}>Back</button>
                 </>;
             default:
-                return <MainMenuPage onSelectView={setCurrentView} screen={currentView} player={player} onLogout={onLogout} />;
+                return <MainMenuPage onSelectView={setCurrentView} screen={currentView} player={player} onLogout={onLogout} balanceRefreshKey={balanceRefreshKey} />;
         }
     };
 

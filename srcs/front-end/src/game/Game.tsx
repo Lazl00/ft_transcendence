@@ -3,7 +3,20 @@ import { useEffect, useRef } from 'react';
 import Phaser from 'phaser';
 import GameScene from './GameScene';
 
-export default function Game() {
+interface GameProps {
+    playerId: number;
+    onResultSaved: () => void;
+}
+
+function createPlayerGameScene(playerId: number, onResultSaved: () => void) {
+    return class PlayerGameScene extends GameScene {
+        constructor() {
+            super(playerId, onResultSaved);
+        }
+    };
+}
+
+export default function Game({ playerId, onResultSaved }: GameProps) {
     const gameRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -16,7 +29,7 @@ export default function Game() {
             width: 800,
             height: 500,
             parent: gameRef.current,
-            scene: [GameScene],
+            scene: [createPlayerGameScene(playerId, onResultSaved)],
             physics: {
             default: 'arcade',
             arcade: {
@@ -29,7 +42,7 @@ export default function Game() {
         return () => {
             game.destroy(true);
         };
-    }, []);
+    }, [playerId, onResultSaved]);
 
     return (
         <div ref={gameRef} className="game-container" />

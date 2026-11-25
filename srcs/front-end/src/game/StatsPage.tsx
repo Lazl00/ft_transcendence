@@ -1,31 +1,21 @@
 import { useEffect, useState } from 'react';
 import './StatsPage.css';
+import type { PlayerSession } from './PlayerSession';
 
-interface Player {
-  id: number;
-  username: string;
+interface StatsPageProps {
+  player: PlayerSession;
 }
 
 interface PlayerMatch {
   match_id: number;
   is_winner: boolean;
-  gamemode: 'default';
-  status: 'finished' | 'abandoned';
+  gamemode: 'CLASSIC';
+  status: 'STARTED' | 'FINISHED' | 'ABANDONED';
   started_at: string;
-  finished_at: string;
+  finished_at: string | null;
 }
 
-function isPlayerList(value: unknown): value is Player[] {
-  return Array.isArray(value) && value.every((player) =>
-    typeof player === 'object'
-    && player !== null
-    && 'id' in player
-    && typeof player.id === 'number'
-    && 'username' in player
-    && typeof player.username === 'string'
-  );
-}
-
+// Match fields use the database/API enum values; unfinished matches have no finish time yet.
 function isPlayerMatchList(value: unknown): value is PlayerMatch[] {
   return Array.isArray(value) && value.every((match) =>
     typeof match === 'object'
@@ -35,22 +25,22 @@ function isPlayerMatchList(value: unknown): value is PlayerMatch[] {
     && 'is_winner' in match
     && typeof match.is_winner === 'boolean'
     && 'gamemode' in match
-    && match.gamemode === 'default' // Only 'default' gamemode is supported, Will need to update this if more gamemodes are added in the future.
+    && match.gamemode === 'CLASSIC'
     && 'status' in match
-    && (match.status === 'finished' || match.status === 'abandoned')
+    && (match.status === 'STARTED' || match.status === 'FINISHED' || match.status === 'ABANDONED')
     && 'started_at' in match
     && typeof match.started_at === 'string'
     && 'finished_at' in match
-    && typeof match.finished_at === 'string'
+    && (typeof match.finished_at === 'string' || match.finished_at === null)
   );
 }
 
-function formatDateTime(value: string): string {
+function formatDateTime(value: string | null): string {
+  if (!value) return '—';
   return new Date(value).toLocaleString();
 }
 
-function StatsPage() {
-  const [playerName, setPlayerName] = useState<string | null>(null);
+function StatsPage({ player }: StatsPageProps) {
   const [matches, setMatches] = useState<PlayerMatch[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,26 +50,8 @@ function StatsPage() {
 
     async function loadMatches() {
       try {
-        const playersResponse = await fetch('/api/players', {
-          signal: controller.signal,
-        });
-        if (!playersResponse.ok) {
-          throw new Error(`Could not load players (HTTP ${playersResponse.status}).`);
-        }
-
-        const playersResult: unknown = await playersResponse.json();
-        if (!isPlayerList(playersResult)) {
-          throw new Error('The server returned players in an unexpected format.');
-        }
-
-        const firstPlayer = [...playersResult].sort((a, b) => a.id - b.id)[0];
-        if (!firstPlayer) {
-          setMatches([]);
-          return;
-        }
-        setPlayerName(firstPlayer.username);
-
-        const matchesResponse = await fetch(`/api/players/${firstPlayer.id}/matches`, {
+        // Request history for the selected player rather than looking up a global first player.
+        const matchesResponse = await fetch(`/api/players/${player.id}/matches`, {
           signal: controller.signal,
         });
         if (!matchesResponse.ok) {
@@ -102,18 +74,18 @@ function StatsPage() {
 
     void loadMatches();
     return () => controller.abort();
-  }, []);
+  }, [player.id]);
 
   return (
     <div className="stats">
       {isLoading && <p role="status">Loading stats...</p>}
       {error && <p role="alert">{error}</p>}
       {!isLoading && !error && matches.length === 0 && (
-        <p>{playerName ? `${playerName} has no match history yet.` : 'No players found.'}</p>
+        <p>{player.username} has no match history yet.</p>
       )}
       {!isLoading && !error && matches.length > 0 && (
         <>
-          {playerName && <h2>{playerName}'s match history</h2>}
+          <h2>{player.username}'s match history</h2>
           <table className="stats-table">
             <thead>
               <tr>
@@ -134,7 +106,7 @@ function StatsPage() {
                   <td>{formatDateTime(match.started_at)}</td>
                   <td>{formatDateTime(match.finished_at)}</td>
                   <td>
-                    {match.status === 'abandoned'
+                    {match.status !== 'FINISHED'
                       ? 'No result'
                       : match.is_winner ? 'Won' : 'Lost'}
                   </td>

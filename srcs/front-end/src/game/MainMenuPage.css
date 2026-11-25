@@ -42,6 +42,31 @@
     justify-content: flex-end;
 }
 
+.player-identity {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 0.35rem;
+    padding: 0 0.75rem;
+    color: white;
+    font-size: 0.65rem;
+    overflow-wrap: anywhere;
+}
+
+.logout-button {
+    border: 0;
+    background: transparent;
+    color: #b7bac8;
+    cursor: pointer;
+    font: 0.65rem Arial, sans-serif;
+}
+
+.logout-button:hover {
+    color: white;
+    text-decoration: underline;
+}
+
 .menu-button {
     width: 14rem;
     height: 5rem;

@@ -16,7 +16,7 @@ export function map_gen(): GameMap
 	};
 	// seed dependant value
 
-	let th: f ={seed: 4936354,
+	let th: f ={seed: 80256583,
 		cluster_max: 3, cluster_min: 2, n_way: 1, s_safe: 4,
 		safe_path_1: Array.from({length: fixed.len}, () => -10),
 		safe_path_2: Array.from({length: fixed.len}, () => -10),

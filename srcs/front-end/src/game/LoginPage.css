@@ -1,0 +1,75 @@
+.login-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    width: min(100% - 2rem, 32rem);
+    margin: 15vh auto 0;
+    color: white;
+    font-family: 'Press Start 2P', monospace;
+    text-align: center;
+}
+
+.login-page h1 {
+    color: rgb(83, 212, 99);
+    font-size: clamp(2.5rem, 12vw, 5rem);
+    text-transform: uppercase;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    width: 100%;
+    font-size: 0.8rem;
+    line-height: 1.8;
+}
+
+.login-form input {
+    min-width: 0;
+    padding: 1rem;
+    border: 2px solid #4f46e5;
+    border-radius: 6px;
+    background: #171a27;
+    color: white;
+    font: 1rem Arial, sans-serif;
+}
+
+.login-form input:focus-visible {
+    outline: 2px solid rgb(83, 212, 99);
+    outline-offset: 2px;
+}
+
+.login-note,
+.login-error {
+    font-family: Arial, sans-serif;
+    font-size: 0.95rem;
+}
+
+.login-note {
+    color: #b7bac8;
+}
+
+.login-error {
+    color: #ff8e8e;
+}
+
+.login-form button {
+    padding: 1rem;
+    border: 0;
+    border-radius: 6px;
+    background: #4f46e5;
+    color: white;
+    cursor: pointer;
+    font: inherit;
+}
+
+.login-form button:hover:not(:disabled) {
+    background: #46e679;
+}
+
+.login-form button:disabled {
+    cursor: wait;
+    opacity: 0.7;
+}

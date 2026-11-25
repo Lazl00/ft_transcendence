@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 import './MainMenuPage.css';
 import type { Screen } from './PageTypes';
+import type { PlayerSession } from './PlayerSession';
 
 interface HomeScreenProps {
   onSelectView: (view: Screen) => void;
   screen: Screen;
+  player: PlayerSession;
+  onLogout: () => void;
 }
 
 interface PlayerBalance {
@@ -12,18 +15,16 @@ interface PlayerBalance {
   money: number;
 }
 
-function isPlayerBalanceList(value: unknown): value is PlayerBalance[] {
-  return Array.isArray(value) && value.every((player) =>
-    typeof player === 'object'
-    && player !== null
-    && 'id' in player
-    && typeof player.id === 'number'
-    && 'money' in player
-    && typeof player.money === 'number'
-  );
+function isPlayerBalance(value: unknown): value is PlayerBalance {
+  return typeof value === 'object'
+    && value !== null
+    && 'id' in value
+    && typeof value.id === 'number'
+    && 'money' in value
+    && typeof value.money === 'number';
 }
 
-function MainMenuPage({ onSelectView, screen }: HomeScreenProps) {
+function MainMenuPage({ onSelectView, screen, player, onLogout }: HomeScreenProps) {
   const [coinCount, setCoinCount] = useState<number | null>(null);
   const [isLoadingCoins, setIsLoadingCoins] = useState(true);
   const [coinError, setCoinError] = useState<string | null>(null);
@@ -33,18 +34,19 @@ function MainMenuPage({ onSelectView, screen }: HomeScreenProps) {
 
     async function loadCoinCount() {
       try {
-        const response = await fetch('/api/players', { signal: controller.signal });
+        // Fetch by the logged-in player's ID instead of showing the first player's balance.
+        const response = await fetch(`/api/players/${player.id}`, { signal: controller.signal });
 
         if (!response.ok) {
           throw new Error(`Could not load player balance (HTTP ${response.status}).`);
         }
 
         const result: unknown = await response.json();
-        if (!isPlayerBalanceList(result)) {
-          throw new Error('The server returned player data in an unexpected format.');
+        if (!isPlayerBalance(result) || result.id !== player.id) {
+          throw new Error('The server returned an unexpected player profile.');
         }
 
-        setCoinCount(result[0]?.money ?? null);
+        setCoinCount(result.money);
       } catch (loadError) {
         if (controller.signal.aborted) return;
         setCoinError(loadError instanceof Error ? loadError.message : 'Could not load player balance.');
@@ -55,7 +57,7 @@ function MainMenuPage({ onSelectView, screen }: HomeScreenProps) {
 
     void loadCoinCount();
     return () => controller.abort();
-  }, []);
+  }, [player.id]);
 
   return (
     <div className="home">
@@ -71,7 +73,11 @@ function MainMenuPage({ onSelectView, screen }: HomeScreenProps) {
           <p className="small-title">Pokipo</p>
         )}
         <div className="menu-side menu-right">
-          <p className="coin-count" aria-label="First player's coins">
+          <div className="player-identity">
+            <span>{player.username}</span>
+            <button className="logout-button" onClick={onLogout}>Log out</button>
+          </div>
+          <p className="coin-count" aria-label={`${player.username}'s coins`}>
             {isLoadingCoins ? '...' : coinCount === null ? '—' : coinCount}
           </p>
           <img className="coin-icon" src="/imgs/money/money.png" alt="Pokipo Logo" />
